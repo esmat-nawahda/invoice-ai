@@ -43,8 +43,8 @@ class App {
     this.app.use(rateLimiter);
 
     // Body parsing middleware
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(express.json({ limit: "50mb" }));
+    this.app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
     // Logging middleware
     this.app.use(morgan("combined", { stream }));

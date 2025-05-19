@@ -13,6 +13,7 @@ export class InvoiceService {
   private model: ChatOpenAI;
   private parser: StructuredOutputParser<typeof invoiceSchema>;
   private worker: Worker | null = null;
+  private arabicWorker: Worker | null = null;
 
   constructor() {
     this.model = new ChatOpenAI({
@@ -28,12 +29,21 @@ export class InvoiceService {
 
   private async initializeOCR(): Promise<void> {
     try {
+      // Initialize English worker
       this.worker = await createWorker();
       await this.worker.load();
       await this.worker.reinitialize("eng");
-      logger.info("OCR worker initialized successfully");
+
+      // Initialize Arabic worker
+      this.arabicWorker = await createWorker();
+      await this.arabicWorker.load();
+      await this.arabicWorker.reinitialize("ara");
+
+      logger.info(
+        "OCR workers initialized successfully for English and Arabic"
+      );
     } catch (error) {
-      logger.error("Failed to initialize OCR worker:", error);
+      logger.error("Failed to initialize OCR workers:", error);
       throw new Error("OCR initialization failed");
     }
   }
@@ -59,15 +69,28 @@ export class InvoiceService {
   }
 
   private async extractTextFromImage(imageBuffer: Buffer): Promise<string> {
-    if (!this.worker) {
-      throw new Error("OCR worker not initialized");
+    if (!this.worker || !this.arabicWorker) {
+      throw new Error("OCR workers not initialized");
     }
 
     try {
-      const {
-        data: { text },
-      } = await this.worker.recognize(imageBuffer);
-      return text;
+      // Try both English and Arabic OCR
+      const [englishResult, arabicResult] = await Promise.all([
+        this.worker.recognize(imageBuffer),
+        this.arabicWorker.recognize(imageBuffer),
+      ]);
+
+      // Combine the results, preferring non-empty text
+      const englishText = englishResult.data.text.trim();
+      const arabicText = arabicResult.data.text.trim();
+
+      // If both have content, combine them
+      if (englishText && arabicText) {
+        return `${englishText}\n${arabicText}`;
+      }
+
+      // Return whichever has content, or empty string if neither
+      return englishText || arabicText || "";
     } catch (error) {
       logger.error("OCR text extraction failed:", error);
       throw new Error("Failed to extract text from image");
@@ -122,6 +145,10 @@ export class InvoiceService {
     if (this.worker) {
       await this.worker.terminate();
       this.worker = null;
+    }
+    if (this.arabicWorker) {
+      await this.arabicWorker.terminate();
+      this.arabicWorker = null;
     }
   }
 }
