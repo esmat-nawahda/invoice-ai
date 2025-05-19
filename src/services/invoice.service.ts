@@ -155,37 +155,40 @@ export class InvoiceService {
 
 // Zod schema for invoice data validation
 const invoiceSchema = z.object({
-  invoiceNumber: z.string(),
-  invoiceDate: z.string(),
+  invoiceNumber: z.string().optional().nullable(),
+  invoiceDate: z.string().optional().nullable(),
   dueDate: z.string().optional().nullable(),
   vendor: z.object({
-    name: z.string(),
+    name: z.string().optional().nullable(),
     address: z.string().optional().nullable(),
     taxId: z.string().optional().nullable(),
     email: z.string().optional().nullable(),
     phone: z.string().optional().nullable(),
   }),
   customer: z.object({
-    name: z.string(),
+    name: z.string().optional().nullable(),
     address: z.string().optional().nullable(),
     taxId: z.string().optional().nullable(),
     email: z.string().optional().nullable(),
     phone: z.string().optional().nullable(),
   }),
-  subtotal: z.number(),
+  subtotal: z.number().optional().nullable(),
   taxAmount: z.number().optional().nullable(),
   taxRate: z.number().optional().nullable(),
   discount: z.number().optional().nullable(),
-  total: z.number(),
-  currency: z.string(),
-  items: z.array(
-    z.object({
-      description: z.string(),
-      quantity: z.number(),
-      unitPrice: z.number(),
-      amount: z.number(),
-    })
-  ),
+  total: z.number().optional().nullable(),
+  currency: z.string().optional().nullable(),
+  items: z
+    .array(
+      z.object({
+        description: z.string().optional().nullable(),
+        quantity: z.number().optional().nullable(),
+        unitPrice: z.number().optional().nullable(),
+        amount: z.number().optional().nullable(),
+      })
+    )
+    .optional()
+    .nullable(),
   paymentTerms: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   paymentStatus: z.enum(["paid", "unpaid", "partial"]).optional().nullable(),

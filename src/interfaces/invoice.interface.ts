@@ -1,19 +1,19 @@
 export interface InvoiceItem {
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  amount: number;
+  description?: string | null;
+  quantity?: number | null;
+  unitPrice?: number | null;
+  amount?: number | null;
 }
 
 export interface InvoiceData {
   // Invoice Header
-  invoiceNumber: string;
-  invoiceDate: string;
+  invoiceNumber?: string | null;
+  invoiceDate?: string | null;
   dueDate?: string | null;
 
   // Company Information
   vendor: {
-    name: string;
+    name?: string | null;
     address?: string | null;
     taxId?: string | null;
     email?: string | null;
@@ -22,7 +22,7 @@ export interface InvoiceData {
 
   // Customer Information
   customer: {
-    name: string;
+    name?: string | null;
     address?: string | null;
     taxId?: string | null;
     email?: string | null;
@@ -30,20 +30,15 @@ export interface InvoiceData {
   };
 
   // Financial Information
-  subtotal: number;
+  subtotal?: number | null;
   taxAmount?: number | null;
   taxRate?: number | null;
   discount?: number | null;
-  total: number;
-  currency: string;
+  total?: number | null;
+  currency?: string | null;
 
   // Line Items
-  items: Array<{
-    description: string;
-    quantity: number;
-    unitPrice: number;
-    amount: number;
-  }>;
+  items?: Array<InvoiceItem> | null;
 
   // Additional Information
   paymentTerms?: string | null;
