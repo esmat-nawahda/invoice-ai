@@ -179,7 +179,7 @@ async function extractInvoice(imagePath) {
 }
 
 // Usage
-extractInvoice('./invoice.pdf');`;
+extractInvoice('./invoice.jpg');`;
 
       case "python":
         return `# Python Example
@@ -218,12 +218,12 @@ def extract_invoice(image_path):
         return None
 
 # Usage
-extract_invoice('./invoice.pdf')`;
+extract_invoice('./invoice.jpg')`;
 
       case "curl":
         return `# cURL Example
 # First, convert your file to base64 (on Unix/Linux/macOS):
-# base64 -i ./invoice.pdf > invoice_base64.txt
+# base64 -i ./invoice.jpg > invoice_base64.txt
 
 curl -X POST "${baseUrl}/invoices/extract" \\
   -H "Content-Type: application/json" \\
@@ -238,7 +238,7 @@ curl -X POST "${baseUrl}/invoices/extract" \\
 curl -X POST "${baseUrl}/invoices/extract" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: ${apiKey}" \\
-  -d "{\\"image\\": \\"$(base64 -w 0 ./invoice.pdf)\\", \\"type\\": \\"received\\", \\"saveToDatabase\\": false}"`;
+  -d "{\\"image\\": \\"$(base64 -w 0 ./invoice.jpg)\\", \\"type\\": \\"received\\", \\"saveToDatabase\\": false}"`;
 
       case "php":
         return `<?php
@@ -288,7 +288,7 @@ function extractInvoice($imagePath) {
 }
 
 // Usage
-extractInvoice('./invoice.pdf');
+extractInvoice('./invoice.jpg');
 ?>`;
 
       case "go":
@@ -359,7 +359,7 @@ func extractInvoice(imagePath string) error {
 }
 
 func main() {
-    err := extractInvoice("./invoice.pdf")
+    err := extractInvoice("./invoice.jpg")
     if err != nil {
         fmt.Printf("Error: %v\\n", err)
     }
@@ -410,7 +410,7 @@ def extract_invoice(image_path)
 end
 
 # Usage
-extract_invoice('./invoice.pdf')`;
+extract_invoice('./invoice.jpg')`;
 
       default:
         return getCodeExample("javascript", apiKey);
@@ -531,15 +531,10 @@ extract_invoice('./invoice.pdf')`;
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Check file type
-      const allowedTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "application/pdf",
-      ];
+      // Check file type - only allow images
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
       if (!allowedTypes.includes(file.type)) {
-        setTestError("Please select a valid file (JPEG, PNG, or PDF)");
+        setTestError("Please select a valid image file (JPEG or PNG only)");
         return;
       }
 
@@ -1378,11 +1373,11 @@ extract_invoice('./invoice.pdf')`;
                     <input
                       type="file"
                       onChange={handleFileSelect}
-                      accept=".jpg,.jpeg,.png,.pdf"
+                      accept=".jpg,.jpeg,.png"
                       className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Support: JPEG, PNG, PDF (max 10MB)
+                      Support: JPEG, PNG images only (max 10MB)
                     </p>
                   </div>
                 </div>
