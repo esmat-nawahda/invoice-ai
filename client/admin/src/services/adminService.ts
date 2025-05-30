@@ -202,6 +202,10 @@ class AdminService {
     return adminApi.get(`/admin/invoices/${id}`);
   }
 
+  async getInvoiceImage(id: string): Promise<{ image: string; mimeType: string; size: number }> {
+    return adminApi.get(`/admin/invoices/${id}/image`);
+  }
+
   // Business list (simplified for dropdowns)
   async getBusinesses(): Promise<Business[]> {
     const response = await this.getAllBusinesses({ limit: 1000 });

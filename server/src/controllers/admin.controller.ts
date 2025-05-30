@@ -453,6 +453,7 @@ export class AdminController extends BaseController<any> {
       const [invoices, total] = await Promise.all([
         Invoice.find(filter)
           .populate("business", "name")
+          .select("-originalImage.base64 -metadata.ocrText") // Exclude large fields for performance
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
@@ -489,16 +490,59 @@ export class AdminController extends BaseController<any> {
     try {
       const invoice = await Invoice.findById(req.params.id)
         .populate("business", "name email")
+        .select("-originalImage.base64") // Exclude base64 image from details
         .lean();
 
       if (!invoice) {
         return this.sendError(res, "Invoice not found", 404);
       }
 
-      this.sendResponse(res, {
+      // Map fields to match frontend expectations
+      const mappedInvoice = {
         ...invoice,
         businessName: (invoice.business as any)?.name || "Unknown Business",
-      });
+        invoiceNumber: invoice.invoiceNumber,
+        date: invoice.invoiceDate,
+        dueDate: invoice.dueDate,
+        vendor: invoice.vendor || {},
+        customer: invoice.customer || {},
+        items: (invoice.lineItems || []).map((item) => ({
+          description: item.description || "",
+          quantity: item.quantity || 0,
+          unitPrice: item.unitPrice || 0,
+          total: item.amount || 0, // Map amount to total
+          taxRate: item.taxRate || 0,
+          unit: item.unit || "",
+        })),
+        subtotal: invoice.subtotal || 0,
+        tax: invoice.taxAmount || 0,
+        total: invoice.totalAmount || 0,
+        currency: invoice.currency || "USD",
+        notes: invoice.notes || "",
+        status: invoice.status,
+        type: invoice.type,
+        extractionMetadata: invoice.metadata
+          ? {
+              confidence: invoice.metadata.extractionConfidence || 0,
+              processingTime: invoice.metadata.processingTimeMs || 0,
+              language: invoice.metadata.ocrLanguage || "eng",
+              ocrText: invoice.metadata.ocrText || "",
+            }
+          : null,
+        paymentHistory: invoice.paymentDate
+          ? [
+              {
+                amount: invoice.paidAmount || 0,
+                date: invoice.paymentDate,
+                method: invoice.paymentMethod || "Unknown",
+                reference: invoice.reference || "",
+              },
+            ]
+          : [],
+        attachments: [],
+      };
+
+      this.sendResponse(res, mappedInvoice);
     } catch (error) {
       logger.error("Error fetching invoice:", error);
       this.sendError(res, "Failed to fetch invoice", 500);
@@ -560,6 +604,7 @@ export class AdminController extends BaseController<any> {
 
       const [invoices, total] = await Promise.all([
         Invoice.find(filter)
+          .select("-originalImage.base64 -metadata.ocrText") // Exclude large fields for performance
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
@@ -591,6 +636,28 @@ export class AdminController extends BaseController<any> {
     } catch (error) {
       logger.error("Error fetching business invoices:", error);
       this.sendError(res, "Failed to fetch business invoices", 500);
+    }
+  };
+
+  // Get invoice image
+  public getInvoiceImage = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const invoice = await Invoice.findById(id).select("originalImage");
+
+      if (!invoice) {
+        return this.sendError(res, "Invoice not found", 404);
+      }
+
+      this.sendResponse(res, {
+        image: invoice.originalImage.base64,
+        mimeType: invoice.originalImage.mimeType,
+        size: invoice.originalImage.size,
+      });
+    } catch (error) {
+      logger.error("Error fetching invoice image:", error);
+      this.sendError(res, "Failed to fetch invoice image", 500);
     }
   };
 }

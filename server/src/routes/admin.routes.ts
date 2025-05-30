@@ -174,6 +174,14 @@ router.get(
   adminController.getInvoiceById
 );
 
+// GET /admin/invoices/:id/image - Get invoice image
+router.get(
+  "/invoices/:id/image",
+  param("id").isMongoId(),
+  validateRequest,
+  adminController.getInvoiceImage
+);
+
 // GET /admin/businesses/:id/invoices - Get invoices for specific business
 router.get(
   "/businesses/:id/invoices",

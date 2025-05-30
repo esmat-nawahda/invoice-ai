@@ -14,7 +14,7 @@ export default function InvoiceList() {
     queryKey: ['invoices', searchTerm, statusFilter],
     queryFn: () => {
       if (!api) throw new Error('API not initialized');
-      return api.get<{ data: Invoice[] }>('/invoices', {
+      return api.get<Invoice[]>('/invoices', {
         search: searchTerm || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
       });
@@ -118,7 +118,7 @@ export default function InvoiceList() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {invoices?.data?.map((invoice) => (
+              {invoices?.map((invoice) => (
                 <tr key={invoice._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{invoice.invoiceNumber}</div>

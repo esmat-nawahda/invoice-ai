@@ -32,10 +32,14 @@ export class ApiClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
+        // If the response has the format { status: 'success', data: ... }, unwrap it
+        if (response.data && response.data.status === 'success' && response.data.data !== undefined) {
+          return response.data.data;
+        }
         return response.data;
       },
       (error) => {
-        const message = error.response?.data?.error?.message || error.message;
+        const message = error.response?.data?.message || error.response?.data?.error?.message || error.message;
         throw new Error(message);
       }
     );

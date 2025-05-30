@@ -12,6 +12,7 @@ import {
   CheckCircleIcon,
   ClockIcon,
   ExclamationTriangleIcon,
+  PhotoIcon,
 } from "@heroicons/react/24/outline";
 import {
   adminService,
@@ -19,6 +20,64 @@ import {
   type InvoicesResponse,
 } from "../services/adminService";
 import type { Business } from "../utils/api";
+
+// Invoice Thumbnail Component
+interface InvoiceThumbnailProps {
+  invoiceId: string;
+}
+
+function InvoiceThumbnail({ invoiceId }: InvoiceThumbnailProps) {
+  const [showImage, setShowImage] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const { data: imageData, isLoading: imageLoading } = useQuery({
+    queryKey: ['invoice-image', invoiceId],
+    queryFn: () => adminService.getInvoiceImage(invoiceId),
+    enabled: showImage,
+    retry: false,
+    onError: () => setImageError(true),
+  });
+
+  if (!showImage) {
+    return (
+      <button
+        onClick={() => setShowImage(true)}
+        className="w-12 h-12 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 flex items-center justify-center transition-colors"
+        title="Load invoice image"
+      >
+        <PhotoIcon className="h-6 w-6 text-gray-400" />
+      </button>
+    );
+  }
+
+  if (imageLoading) {
+    return (
+      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (imageError || !imageData) {
+    return (
+      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+        <PhotoIcon className="h-6 w-6 text-gray-300" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative group">
+      <img
+        src={`data:${imageData.mimeType};base64,${imageData.image}`}
+        alt="Invoice thumbnail"
+        className="w-12 h-12 rounded-lg object-cover border border-gray-200 cursor-pointer hover:border-primary-500 transition-colors"
+        onError={() => setImageError(true)}
+      />
+      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-opacity"></div>
+    </div>
+  );
+}
 
 export default function Invoices() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -285,6 +344,9 @@ export default function Invoices() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Image
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Invoice
                     </th>
@@ -311,6 +373,9 @@ export default function Invoices() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {invoicesData.invoices.map((invoice) => (
                     <tr key={invoice._id} className="hover:bg-gray-50">
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <InvoiceThumbnail invoiceId={invoice._id} />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
@@ -370,12 +435,13 @@ export default function Invoices() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          className="text-primary-600 hover:text-primary-800 mr-3"
+                        <Link
+                          to={`/invoices/${invoice._id}`}
+                          className="text-primary-600 hover:text-primary-800 mr-3 inline-block"
                           title="View Invoice"
                         >
                           <EyeIcon className="h-4 w-4" />
-                        </button>
+                        </Link>
                       </td>
                     </tr>
                   ))}

@@ -20,6 +20,9 @@ import {
   CodeBracketIcon,
   DocumentTextIcon,
   CurrencyDollarIcon,
+  PhotoIcon,
+  CheckCircleIcon,
+  ArrowUpOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import {
   adminService,
@@ -33,6 +36,70 @@ import type { Business, ApiKey } from "../utils/api";
 // Business Invoices Section Component
 interface BusinessInvoicesSectionProps {
   businessId: string;
+}
+
+// Invoice Thumbnail Component
+interface InvoiceThumbnailProps {
+  invoiceId: string;
+}
+
+function InvoiceThumbnail({ invoiceId }: InvoiceThumbnailProps) {
+  const [showImage, setShowImage] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const { data: imageData, isLoading: imageLoading } = useQuery({
+    queryKey: ['invoice-image', invoiceId],
+    queryFn: async () => {
+      try {
+        return await adminService.getInvoiceImage(invoiceId);
+      } catch (error) {
+        setImageError(true);
+        throw error;
+      }
+    },
+    enabled: showImage,
+    retry: false,
+  });
+
+  if (!showImage) {
+    return (
+      <button
+        onClick={() => setShowImage(true)}
+        className="w-12 h-12 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 flex items-center justify-center transition-colors"
+        title="Load invoice image"
+      >
+        <PhotoIcon className="h-6 w-6 text-gray-400" />
+      </button>
+    );
+  }
+
+  if (imageLoading) {
+    return (
+      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (imageError || !imageData) {
+    return (
+      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+        <PhotoIcon className="h-6 w-6 text-gray-300" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative group">
+      <img
+        src={`data:${imageData.mimeType};base64,${imageData.image}`}
+        alt="Invoice thumbnail"
+        className="w-12 h-12 rounded-lg object-cover border border-gray-200 cursor-pointer hover:border-primary-500 transition-colors"
+        onError={() => setImageError(true)}
+      />
+      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-opacity"></div>
+    </div>
+  );
 }
 
 function BusinessInvoicesSection({ businessId }: BusinessInvoicesSectionProps) {
@@ -94,6 +161,9 @@ function BusinessInvoicesSection({ businessId }: BusinessInvoicesSectionProps) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Image
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Invoice
               </th>
@@ -117,6 +187,9 @@ function BusinessInvoicesSection({ businessId }: BusinessInvoicesSectionProps) {
           <tbody className="bg-white divide-y divide-gray-200">
             {invoicesData.invoices.map((invoice) => (
               <tr key={invoice._id} className="hover:bg-gray-50">
+                <td className="px-3 py-4 whitespace-nowrap">
+                  <InvoiceThumbnail invoiceId={invoice._id} />
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
@@ -164,12 +237,13 @@ function BusinessInvoicesSection({ businessId }: BusinessInvoicesSectionProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    className="text-primary-600 hover:text-primary-800"
+                  <Link
+                    to={`/invoices/${invoice._id}`}
+                    className="text-primary-600 hover:text-primary-800 inline-block"
                     title="View Invoice"
                   >
                     <EyeIcon className="h-4 w-4" />
-                  </button>
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -682,11 +756,11 @@ extract_invoice('./invoice.jpg')`;
         reader.readAsDataURL(selectedFile);
       });
 
-      // Prepare JSON payload
+      // Prepare JSON payload - Always save to database for admin testing
       const payload = {
         image: base64String,
         type: invoiceType, // Use selected type
-        saveToDatabase: false, // Don't save test calls to database
+        saveToDatabase: true, // Save test calls to database for admin
       };
 
       const response = await fetch(`${getApiBaseUrl()}/invoices/extract`, {
@@ -707,6 +781,11 @@ extract_invoice('./invoice.jpg')`;
           status: response.status,
           statusText: response.statusText,
         });
+        
+        // Invalidate invoice queries to refresh the list
+        if (responseData.data?.saved) {
+          queryClient.invalidateQueries({ queryKey: ["businessInvoices", id] });
+        }
       } else {
         setTestResult({
           success: false,
@@ -1525,10 +1604,20 @@ extract_invoice('./invoice.jpg')`;
                     Test API Endpoint
                   </h4>
                 </div>
-                <p className="text-sm text-green-700 mb-4">
+                <p className="text-sm text-green-700 mb-2">
                   Test the Invoice Extract API directly from your browser with a
                   real API key and file.
                 </p>
+                <div className="bg-green-100 border border-green-300 rounded-md p-3 mb-4">
+                  <div className="flex items-start">
+                    <svg className="h-5 w-5 text-green-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-sm text-green-800">
+                      <strong>Note:</strong> Test invoices will be saved to the database and appear in the invoice list below.
+                    </p>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* API Key Input */}
@@ -1665,6 +1754,45 @@ extract_invoice('./invoice.jpg')`;
                         {testResult.status} {testResult.statusText}
                       </span>
                     </div>
+                    
+                    {/* Show saved invoice info if successful */}
+                    {testResult.success && testResult.data?.data?.saved && (
+                      <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-start">
+                          <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
+                          <div className="flex-1">
+                            <h6 className="text-sm font-medium text-green-900 mb-1">
+                              Invoice Saved Successfully
+                            </h6>
+                            <div className="text-sm text-green-800 space-y-1">
+                              <div>
+                                <span className="font-medium">Invoice ID:</span>{" "}
+                                {testResult.data.data.saved.id}
+                              </div>
+                              <div>
+                                <span className="font-medium">Invoice Number:</span>{" "}
+                                {testResult.data.data.saved.invoiceNumber}
+                              </div>
+                              <div>
+                                <span className="font-medium">Total Amount:</span>{" "}
+                                {testResult.data.data.saved.currency}{" "}
+                                {testResult.data.data.saved.totalAmount}
+                              </div>
+                              <div className="mt-2">
+                                <Link
+                                  to={`/invoices/${testResult.data.data.saved.id}`}
+                                  className="inline-flex items-center text-sm font-medium text-green-700 hover:text-green-800"
+                                >
+                                  View Invoice Details
+                                  <ArrowUpOnSquareIcon className="ml-1 h-4 w-4" />
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="bg-gray-900 rounded-lg overflow-hidden">
                       <div className="bg-gray-800 px-4 py-2 border-b border-gray-700">
                         <div className="flex items-center space-x-2">

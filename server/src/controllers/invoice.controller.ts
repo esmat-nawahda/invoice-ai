@@ -51,12 +51,9 @@ export class InvoiceController {
             business: business._id,
             type,
             invoiceNumber: extractedData.invoiceNumber || `INV-${Date.now()}`,
-            invoiceDate: extractedData.invoiceDate
-              ? new Date(extractedData.invoiceDate)
-              : new Date(),
-            dueDate: extractedData.dueDate
-              ? new Date(extractedData.dueDate)
-              : undefined,
+            invoiceDate:
+              this.parseDate(extractedData.invoiceDate) || new Date(),
+            dueDate: this.parseDate(extractedData.dueDate) || undefined,
             vendor: {
               name: extractedData.vendor?.name,
               address: extractedData.vendor?.address,
@@ -477,5 +474,15 @@ export class InvoiceController {
 
     // Default to jpeg if can't detect
     return "image/jpeg";
+  }
+
+  private parseDate(dateStr: string | null | undefined): Date | undefined {
+    if (dateStr) {
+      const parsedDate = new Date(dateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate;
+      }
+    }
+    return undefined;
   }
 }

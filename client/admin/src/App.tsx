@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Businesses from "./pages/Businesses";
 import BusinessDetails from "./pages/BusinessDetails";
 import Invoices from "./pages/Invoices";
+import InvoiceDetails from "./pages/InvoiceDetails";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 
@@ -50,6 +51,7 @@ function App() {
                 <Route path="businesses" element={<Businesses />} />
                 <Route path="businesses/:id" element={<BusinessDetails />} />
                 <Route path="invoices" element={<Invoices />} />
+                <Route path="invoices/:id" element={<InvoiceDetails />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
