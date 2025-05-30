@@ -19,13 +19,209 @@ import {
   BuildingOfficeIcon,
   CodeBracketIcon,
   DocumentTextIcon,
+  CurrencyDollarIcon,
 } from "@heroicons/react/24/outline";
 import {
   adminService,
   type CreateApiKeyData,
   type ApiKeyWithKey,
+  type Invoice,
+  type InvoicesResponse,
 } from "../services/adminService";
 import type { Business, ApiKey } from "../utils/api";
+
+// Business Invoices Section Component
+interface BusinessInvoicesSectionProps {
+  businessId: string;
+}
+
+function BusinessInvoicesSection({ businessId }: BusinessInvoicesSectionProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const limit = 10;
+
+  const { data: invoicesData, isLoading } = useQuery({
+    queryKey: ["businessInvoices", businessId, currentPage],
+    queryFn: () =>
+      adminService.getBusinessInvoices(businessId, {
+        page: currentPage,
+        limit,
+      }),
+  });
+
+  const getStatusBadge = (status: string) => {
+    const badges = {
+      pending: "bg-yellow-100 text-yellow-800",
+      processing: "bg-blue-100 text-blue-800",
+      completed: "bg-green-100 text-green-800",
+      failed: "bg-red-100 text-red-800",
+    };
+    return badges[status as keyof typeof badges] || "bg-gray-100 text-gray-800";
+  };
+
+  const getTypeBadge = (type: string) => {
+    return type === "received"
+      ? "bg-blue-50 text-blue-700 border border-blue-200"
+      : "bg-green-50 text-green-700 border border-green-200";
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+        <span className="ml-2 text-sm text-gray-600">Loading invoices...</span>
+      </div>
+    );
+  }
+
+  if (!invoicesData || invoicesData.invoices.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          No invoices found
+        </h3>
+        <p className="mt-1 text-sm text-gray-500">
+          This business hasn't processed any invoices yet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      {/* Invoices Table */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Invoice
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Amount
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Type
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {invoicesData.invoices.map((invoice) => (
+              <tr key={invoice._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {invoice.invoiceNumber ||
+                          `Invoice ${invoice._id.slice(-6)}`}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {invoice.vendor?.name ||
+                          invoice.customer?.name ||
+                          "N/A"}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center text-sm text-gray-900">
+                    <CurrencyDollarIcon className="h-4 w-4 text-gray-400 mr-1" />
+                    {invoice.amount.toLocaleString()} {invoice.currency}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md ${getTypeBadge(
+                      invoice.type
+                    )}`}
+                  >
+                    {invoice.type}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(
+                      invoice.status
+                    )}`}
+                  >
+                    <span className="capitalize">{invoice.status}</span>
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center text-sm text-gray-500">
+                    <CalendarIcon className="h-4 w-4 mr-1" />
+                    {new Date(invoice.date).toLocaleDateString()}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <button
+                    className="text-primary-600 hover:text-primary-800"
+                    title="View Invoice"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {invoicesData.totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Showing{" "}
+              <span className="font-medium">
+                {(currentPage - 1) * limit + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium">
+                {Math.min(currentPage * limit, invoicesData.total)}
+              </span>{" "}
+              of <span className="font-medium">{invoicesData.total}</span>{" "}
+              invoices
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="btn btn-secondary btn-sm disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-700">
+              Page {currentPage} of {invoicesData.totalPages}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentPage(
+                  Math.min(invoicesData.totalPages, currentPage + 1)
+                )
+              }
+              disabled={currentPage === invoicesData.totalPages}
+              className="btn btn-secondary btn-sm disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function BusinessDetails() {
   const { id } = useParams<{ id: string }>();
@@ -1687,6 +1883,26 @@ extract_invoice('./invoice.jpg')`;
             </div>
           )}
         </div>
+      </div>
+
+      {/* Business Invoices Section */}
+      <div className="card mb-8">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <DocumentTextIcon className="h-5 w-5 mr-2" />
+              Recent Invoices
+            </h3>
+            <Link
+              to={`/invoices?businessId=${id}`}
+              className="text-sm text-primary-600 hover:text-primary-800 font-medium"
+            >
+              View All →
+            </Link>
+          </div>
+        </div>
+
+        <BusinessInvoicesSection businessId={id!} />
       </div>
 
       {/* Create API Key Modal */}
