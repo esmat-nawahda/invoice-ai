@@ -1,31 +1,49 @@
-import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { 
-  HomeIcon, 
-  BuildingOfficeIcon, 
-  ChartBarIcon, 
+import React from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  HomeIcon,
+  BuildingOfficeIcon,
+  ChartBarIcon,
   CogIcon,
   Bars3Icon,
-  XMarkIcon 
-} from '@heroicons/react/24/outline';
-import { useState } from 'react';
+  XMarkIcon,
+  ArrowRightOnRectangleIcon,
+  ChevronDownIcon,
+} from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Businesses', href: '/businesses', icon: BuildingOfficeIcon },
-  { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
-  { name: 'Settings', href: '/settings', icon: CogIcon },
+  { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
+  { name: "Businesses", href: "/businesses", icon: BuildingOfficeIcon },
+  { name: "Analytics", href: "/analytics", icon: ChartBarIcon },
+  { name: "Settings", href: "/settings", icon: CogIcon },
 ];
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, username } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Mobile sidebar */}
-      <div className={`fixed inset-0 z-40 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
+      <div
+        className={`fixed inset-0 z-40 lg:hidden ${
+          sidebarOpen ? "block" : "hidden"
+        }`}
+      >
+        <div
+          className="fixed inset-0 bg-gray-600 bg-opacity-75"
+          onClick={() => setSidebarOpen(false)}
+        />
         <div className="relative flex w-full max-w-xs flex-1 flex-col bg-white pt-5 pb-4">
           <div className="absolute top-0 right-0 -mr-12 pt-2">
             <button
@@ -62,11 +80,43 @@ export default function Layout() {
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1" />
             <div className="flex items-center gap-x-4 lg:gap-x-6">
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">A</span>
-                </div>
-                <span className="ml-3 text-sm font-medium text-gray-700">Admin</span>
+              {/* User menu */}
+              <div className="relative">
+                <button
+                  type="button"
+                  className="flex items-center max-w-xs rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                >
+                  <span className="sr-only">Open user menu</span>
+                  <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
+                    <span className="text-sm font-medium text-white">
+                      {username?.charAt(0).toUpperCase() || "A"}
+                    </span>
+                  </div>
+                  <span className="ml-3 text-sm font-medium text-gray-700">
+                    {username || "Admin"}
+                  </span>
+                  <ChevronDownIcon className="ml-2 h-4 w-4 text-gray-400" />
+                </button>
+
+                {/* User dropdown menu */}
+                {userMenuOpen && (
+                  <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                      Signed in as
+                      <div className="font-medium text-gray-900">
+                        {username || "admin"}
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <ArrowRightOnRectangleIcon className="mr-3 h-4 w-4" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -79,6 +129,14 @@ export default function Layout() {
           </div>
         </main>
       </div>
+
+      {/* Click outside to close user menu */}
+      {userMenuOpen && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setUserMenuOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -93,7 +151,9 @@ function SidebarContent() {
           <div className="h-10 w-10 rounded-lg bg-primary-600 flex items-center justify-center">
             <span className="text-lg font-bold text-white">IA</span>
           </div>
-          <span className="ml-3 text-xl font-bold text-gray-900">Invoice AI Admin</span>
+          <span className="ml-3 text-xl font-bold text-gray-900">
+            Invoice AI Admin
+          </span>
         </div>
       </div>
       <nav className="flex flex-1 flex-col">
@@ -108,13 +168,15 @@ function SidebarContent() {
                       to={item.href}
                       className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold ${
                         isActive
-                          ? 'bg-primary-600 text-white'
-                          : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50'
+                          ? "bg-primary-600 text-white"
+                          : "text-gray-700 hover:text-primary-600 hover:bg-gray-50"
                       }`}
                     >
                       <item.icon
                         className={`h-6 w-6 shrink-0 ${
-                          isActive ? 'text-white' : 'text-gray-400 group-hover:text-primary-600'
+                          isActive
+                            ? "text-white"
+                            : "text-gray-400 group-hover:text-primary-600"
                         }`}
                       />
                       {item.name}
