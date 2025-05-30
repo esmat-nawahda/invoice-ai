@@ -42,10 +42,6 @@ export interface PlatformStatistics {
   };
 }
 
-export interface PlatformStatisticsResponse {
-  status: string;
-  data: PlatformStatistics;
-}
 
 export interface CreateBusinessData {
   name: string;
@@ -143,7 +139,7 @@ class AdminService {
   }
 
   // Platform Statistics
-  async getPlatformStatistics(): Promise<PlatformStatisticsResponse> {
+  async getPlatformStatistics(): Promise<PlatformStatistics> {
     return adminApi.get("/admin/statistics");
   }
 }

@@ -11,14 +11,14 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { adminService } from "../services/adminService";
-import type { PlatformStatisticsResponse } from "../services/adminService";
+import type { PlatformStatistics } from "../services/adminService";
 
 export default function Dashboard() {
   const {
     data: stats,
     isLoading,
     error,
-  } = useQuery<PlatformStatisticsResponse>({
+  } = useQuery<PlatformStatistics>({
     queryKey: ["platform-statistics"],
     queryFn: () => adminService.getPlatformStatistics(),
   });
@@ -57,20 +57,20 @@ export default function Dashboard() {
     {
       name: "Total Businesses",
       value:
-        typeof stats?.data?.totalBusinesses === "number"
-          ? stats.data.totalBusinesses.toLocaleString()
+        typeof stats?.totalBusinesses === "number"
+          ? stats.totalBusinesses.toLocaleString()
           : "0",
       change:
-        stats?.data?.businessGrowth !== undefined
-          ? `${stats.data.businessGrowth > 0 ? "+" : ""}${
-              stats.data.businessGrowth
+        stats?.businessGrowth !== undefined
+          ? `${stats.businessGrowth > 0 ? "+" : ""}${
+              stats.businessGrowth
             }%`
           : "N/A",
       changeType:
-        stats?.data?.businessGrowth !== undefined
-          ? stats.data.businessGrowth > 0
+        stats?.businessGrowth !== undefined
+          ? stats.businessGrowth > 0
             ? "increase"
-            : stats.data.businessGrowth < 0
+            : stats.businessGrowth < 0
             ? "decrease"
             : "neutral"
           : "neutral",
@@ -79,12 +79,12 @@ export default function Dashboard() {
     {
       name: "Active Businesses",
       value:
-        typeof stats?.data?.activeBusinesses === "number"
-          ? stats.data.activeBusinesses.toLocaleString()
+        typeof stats?.activeBusinesses === "number"
+          ? stats.activeBusinesses.toLocaleString()
           : "0",
-      change: stats?.data?.totalBusinesses
+      change: stats?.totalBusinesses
         ? `${Math.round(
-            (stats.data.activeBusinesses / stats.data.totalBusinesses) * 100
+            (stats.activeBusinesses / stats.totalBusinesses) * 100
           )}%`
         : "0%",
       changeType: "neutral",
@@ -93,30 +93,30 @@ export default function Dashboard() {
     {
       name: "Total Invoices",
       value:
-        typeof stats?.data?.totalInvoices === "number"
-          ? stats.data.totalInvoices.toLocaleString()
+        typeof stats?.totalInvoices === "number"
+          ? stats.totalInvoices.toLocaleString()
           : "0",
-      change: `${stats?.data?.monthlyInvoices || 0} this month`,
+      change: `${stats?.monthlyInvoices || 0} this month`,
       changeType: "neutral",
       icon: DocumentTextIcon,
     },
     {
       name: "New This Month",
       value:
-        typeof stats?.data?.newBusinessesThisMonth === "number"
-          ? stats.data.newBusinessesThisMonth.toLocaleString()
+        typeof stats?.newBusinessesThisMonth === "number"
+          ? stats.newBusinessesThisMonth.toLocaleString()
           : "0",
       change:
-        stats?.data?.businessGrowth !== undefined
-          ? `${stats.data.businessGrowth > 0 ? "+" : ""}${
-              stats.data.businessGrowth
+        stats?.businessGrowth !== undefined
+          ? `${stats.businessGrowth > 0 ? "+" : ""}${
+              stats.businessGrowth
             }%`
           : "N/A",
       changeType:
-        stats?.data?.businessGrowth !== undefined
-          ? stats.data.businessGrowth > 0
+        stats?.businessGrowth !== undefined
+          ? stats.businessGrowth > 0
             ? "increase"
-            : stats.data.businessGrowth < 0
+            : stats.businessGrowth < 0
             ? "decrease"
             : "neutral"
           : "neutral",
@@ -194,9 +194,9 @@ export default function Dashboard() {
             </h3>
           </div>
           <div className="p-6">
-            {stats?.data?.planBreakdown ? (
+            {stats?.planBreakdown ? (
               <div className="space-y-4">
-                {Object.entries(stats.data.planBreakdown).map(
+                {Object.entries(stats.planBreakdown).map(
                   ([plan, count]) => (
                     <div
                       key={plan}
@@ -214,8 +214,8 @@ export default function Dashboard() {
                             className="bg-primary-600 h-2 rounded-full"
                             style={{
                               width: `${
-                                stats.data.totalBusinesses > 0
-                                  ? (count / stats.data.totalBusinesses) * 100
+                                stats.totalBusinesses > 0
+                                  ? (count / stats.totalBusinesses) * 100
                                   : 0
                               }%`,
                             }}
@@ -242,9 +242,9 @@ export default function Dashboard() {
             </h3>
           </div>
           <div className="p-6">
-            {stats?.data?.statusBreakdown ? (
+            {stats?.statusBreakdown ? (
               <div className="space-y-4">
-                {Object.entries(stats.data.statusBreakdown).map(
+                {Object.entries(stats.statusBreakdown).map(
                   ([status, count]) => {
                     const statusColors = {
                       active: "bg-green-500",
@@ -282,8 +282,8 @@ export default function Dashboard() {
                               }`}
                               style={{
                                 width: `${
-                                  stats.data.totalBusinesses > 0
-                                    ? (count / stats.data.totalBusinesses) * 100
+                                  stats.totalBusinesses > 0
+                                    ? (count / stats.totalBusinesses) * 100
                                     : 0
                                 }%`,
                               }}
@@ -382,7 +382,7 @@ export default function Dashboard() {
                   Monthly Invoices
                 </span>
                 <span className="text-sm font-semibold text-gray-900">
-                  {stats?.data?.monthlyInvoices?.toLocaleString() || "0"}
+                  {stats?.monthlyInvoices?.toLocaleString() || "0"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -391,17 +391,17 @@ export default function Dashboard() {
                 </span>
                 <span
                   className={`text-sm font-semibold ${
-                    stats?.data?.businessGrowth && stats.data.businessGrowth > 0
+                    stats?.businessGrowth && stats.businessGrowth > 0
                       ? "text-green-600"
-                      : stats?.data?.businessGrowth &&
-                        stats.data.businessGrowth < 0
+                      : stats?.businessGrowth &&
+                        stats.businessGrowth < 0
                       ? "text-red-600"
                       : "text-gray-600"
                   }`}
                 >
-                  {stats?.data?.businessGrowth !== undefined
-                    ? `${stats.data.businessGrowth > 0 ? "+" : ""}${
-                        stats.data.businessGrowth
+                  {stats?.businessGrowth !== undefined
+                    ? `${stats.businessGrowth > 0 ? "+" : ""}${
+                        stats.businessGrowth
                       }%`
                     : "N/A"}
                 </span>
@@ -411,10 +411,10 @@ export default function Dashboard() {
                   Active Rate
                 </span>
                 <span className="text-sm font-semibold text-green-600">
-                  {stats?.data?.totalBusinesses
+                  {stats?.totalBusinesses
                     ? `${Math.round(
-                        (stats.data.activeBusinesses /
-                          stats.data.totalBusinesses) *
+                        (stats.activeBusinesses /
+                          stats.totalBusinesses) *
                           100
                       )}%`
                     : "0%"}
@@ -425,7 +425,7 @@ export default function Dashboard() {
                   New This Month
                 </span>
                 <span className="text-sm font-semibold text-blue-600">
-                  {stats?.data?.newBusinessesThisMonth || "0"}
+                  {stats?.newBusinessesThisMonth || "0"}
                 </span>
               </div>
             </div>
