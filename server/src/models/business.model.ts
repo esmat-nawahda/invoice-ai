@@ -303,7 +303,7 @@ businessSchema.virtual('isSubscriptionExpired').get(function() {
 });
 
 // Methods
-businessSchema.methods.incrementUsage = async function(type: 'invoice' | 'apiCall', amount = 1) {
+businessSchema.methods.incrementUsage = async function(type: 'invoice' | 'apiCall', amount = 1, storageMB = 0) {
   const update: any = {
     $inc: {
       [`usage.currentMonth.${type}s`]: amount,
@@ -311,8 +311,11 @@ businessSchema.methods.incrementUsage = async function(type: 'invoice' | 'apiCal
     }
   };
   
-  if (type === 'invoice') {
-    // Also increment storage used (approximate 1MB per invoice)
+  if (type === 'invoice' && storageMB > 0) {
+    // Increment storage used by actual size
+    update.$inc['usage.currentMonth.storageUsedMB'] = storageMB;
+  } else if (type === 'invoice') {
+    // Default to 1MB if no size provided
     update.$inc['usage.currentMonth.storageUsedMB'] = 1;
   }
   

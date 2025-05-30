@@ -88,7 +88,9 @@ export class InvoiceController {
               base64: image,
               mimeType: this.detectMimeType(image),
               size: Buffer.from(
-                image.replace(/^data:image\/\w+;base64,/, ""),
+                image.includes('base64,') 
+                  ? image.split('base64,')[1] 
+                  : image,
                 "base64"
               ).length,
             },
@@ -105,8 +107,9 @@ export class InvoiceController {
 
           savedInvoice = await Invoice.create(invoiceToSave);
 
-          // Increment business usage
-          await business.incrementUsage("invoice");
+          // Increment business usage with actual storage size
+          const storageSizeMB = invoiceToSave.originalImage.size / (1024 * 1024); // Convert bytes to MB
+          await business.incrementUsage("invoice", 1, storageSizeMB);
 
           logger.info(
             `Invoice ${savedInvoice.invoiceNumber} created for business ${business.name}`

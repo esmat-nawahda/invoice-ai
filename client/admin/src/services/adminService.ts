@@ -156,6 +156,10 @@ class AdminService {
     return adminApi.post(`/admin/businesses/${id}/reset-usage`);
   }
 
+  async recalculateBusinessStorage(id: string): Promise<{ message: string; storageUsedMB: number; invoiceCount: number }> {
+    return adminApi.post(`/admin/businesses/${id}/recalculate-storage`);
+  }
+
   // API Key Management
   async getBusinessApiKeys(businessId: string): Promise<ApiKey[]> {
     return adminApi.get(`/admin/businesses/${businessId}/api-keys`);

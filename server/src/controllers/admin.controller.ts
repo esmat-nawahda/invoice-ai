@@ -362,6 +362,60 @@ export class AdminController extends BaseController<any> {
     }
   };
 
+  // Recalculate business storage
+  public recalculateBusinessStorage = async (req: Request, res: Response) => {
+    try {
+      const businessId = req.params.id;
+      const business = await Business.findById(businessId);
+      
+      if (!business) {
+        return this.sendError(res, "Business not found", 404);
+      }
+
+      // Get all invoices for this business in the current month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      
+      const invoices = await Invoice.find({
+        business: businessId,
+        createdAt: { $gte: startOfMonth }
+      }).select('originalImage.size');
+      
+      // Calculate total storage used
+      let totalStorageMB = 0;
+      let invoiceCount = 0;
+      
+      for (const invoice of invoices) {
+        if (invoice.originalImage?.size) {
+          totalStorageMB += invoice.originalImage.size / (1024 * 1024);
+          invoiceCount++;
+        }
+      }
+      
+      // Update business storage usage
+      await Business.updateOne(
+        { _id: businessId },
+        { 
+          $set: { 
+            'usage.currentMonth.storageUsedMB': totalStorageMB 
+          } 
+        }
+      );
+      
+      logger.info(`Recalculated storage for business ${business.name}: ${totalStorageMB.toFixed(2)} MB from ${invoiceCount} invoices`);
+
+      this.sendResponse(res, { 
+        message: "Storage recalculated successfully",
+        storageUsedMB: totalStorageMB,
+        invoiceCount: invoiceCount
+      });
+    } catch (error) {
+      logger.error("Error recalculating business storage:", error);
+      this.sendError(res, "Failed to recalculate storage", 500);
+    }
+  };
+
   // Suspend business
   public suspendBusiness = async (req: Request, res: Response) => {
     try {
@@ -660,4 +714,320 @@ export class AdminController extends BaseController<any> {
       this.sendError(res, "Failed to fetch invoice image", 500);
     }
   };
+
+  // Get analytics data
+  public getAnalytics = async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate, groupBy = 'day' } = req.query;
+      
+      // Parse dates
+      const start = startDate ? new Date(startDate as string) : new Date(new Date().setMonth(new Date().getMonth() - 1));
+      const end = endDate ? new Date(endDate as string) : new Date();
+      
+      // Set time to start and end of day
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+
+      // Get business growth data
+      const businessGrowth = await this.getBusinessGrowthData(start, end, groupBy as string);
+      
+      // Get invoice analytics
+      const invoiceAnalytics = await this.getInvoiceAnalytics(start, end);
+      
+      // Get revenue analytics
+      const revenueAnalytics = await this.getRevenueAnalytics(start, end);
+      
+      // Get usage analytics
+      const usageAnalytics = await this.getUsageAnalytics(start, end);
+      
+      // Get top businesses
+      const topBusinesses = await this.getTopBusinesses(start, end);
+
+      this.sendResponse(res, {
+        dateRange: { start, end },
+        businessGrowth,
+        invoiceAnalytics,
+        revenueAnalytics,
+        usageAnalytics,
+        topBusinesses
+      });
+    } catch (error) {
+      logger.error("Error fetching analytics:", error);
+      this.sendError(res, "Failed to fetch analytics", 500);
+    }
+  };
+
+  // Helper method to get business growth data
+  private async getBusinessGrowthData(start: Date, end: Date, groupBy: string) {
+    const groupByFormat = groupBy === 'day' ? '%Y-%m-%d' : groupBy === 'week' ? '%Y-%U' : '%Y-%m';
+    
+    const businessGrowth = await Business.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: groupByFormat, date: "$createdAt" }
+          },
+          count: { $sum: 1 },
+          byPlan: {
+            $push: "$plan"
+          }
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      },
+      {
+        $project: {
+          date: "$_id",
+          count: 1,
+          planBreakdown: {
+            free: {
+              $size: {
+                $filter: {
+                  input: "$byPlan",
+                  cond: { $eq: ["$$this", "free"] }
+                }
+              }
+            },
+            starter: {
+              $size: {
+                $filter: {
+                  input: "$byPlan",
+                  cond: { $eq: ["$$this", "starter"] }
+                }
+              }
+            },
+            professional: {
+              $size: {
+                $filter: {
+                  input: "$byPlan",
+                  cond: { $eq: ["$$this", "professional"] }
+                }
+              }
+            },
+            enterprise: {
+              $size: {
+                $filter: {
+                  input: "$byPlan",
+                  cond: { $eq: ["$$this", "enterprise"] }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    return businessGrowth;
+  }
+
+  // Helper method to get invoice analytics
+  private async getInvoiceAnalytics(start: Date, end: Date) {
+    const invoiceStats = await Invoice.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end }
+        }
+      },
+      {
+        $facet: {
+          totalStats: [
+            {
+              $group: {
+                _id: null,
+                totalCount: { $sum: 1 },
+                totalAmount: { $sum: "$totalAmount" },
+                avgAmount: { $avg: "$totalAmount" },
+                byType: {
+                  $push: "$type"
+                },
+                byStatus: {
+                  $push: "$status"
+                }
+              }
+            }
+          ],
+          dailyStats: [
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                },
+                count: { $sum: 1 },
+                amount: { $sum: "$totalAmount" }
+              }
+            },
+            { $sort: { _id: 1 } }
+          ],
+          currencyBreakdown: [
+            {
+              $group: {
+                _id: "$currency",
+                count: { $sum: 1 },
+                totalAmount: { $sum: "$totalAmount" }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    const stats = invoiceStats[0];
+    const totalStats = stats.totalStats[0] || {
+      totalCount: 0,
+      totalAmount: 0,
+      avgAmount: 0,
+      byType: [],
+      byStatus: []
+    };
+
+    // Calculate type and status breakdowns
+    const typeBreakdown = {
+      received: totalStats.byType.filter((t: string) => t === 'received').length,
+      sent: totalStats.byType.filter((t: string) => t === 'sent').length
+    };
+
+    const statusBreakdown = {
+      draft: totalStats.byStatus.filter((s: string) => s === 'draft').length,
+      pending: totalStats.byStatus.filter((s: string) => s === 'pending').length,
+      approved: totalStats.byStatus.filter((s: string) => s === 'approved').length,
+      rejected: totalStats.byStatus.filter((s: string) => s === 'rejected').length,
+      paid: totalStats.byStatus.filter((s: string) => s === 'paid').length,
+      cancelled: totalStats.byStatus.filter((s: string) => s === 'cancelled').length
+    };
+
+    return {
+      total: totalStats.totalCount,
+      totalAmount: totalStats.totalAmount,
+      averageAmount: totalStats.avgAmount,
+      typeBreakdown,
+      statusBreakdown,
+      dailyStats: stats.dailyStats,
+      currencyBreakdown: stats.currencyBreakdown
+    };
+  }
+
+  // Helper method to get revenue analytics
+  private async getRevenueAnalytics(start: Date, end: Date) {
+    // This is a placeholder - in a real system, you'd track actual revenue from subscriptions
+    const planPricing = {
+      free: 0,
+      starter: 29,
+      professional: 99,
+      enterprise: 299
+    };
+
+    const businesses = await Business.find({
+      status: 'active',
+      createdAt: { $lte: end }
+    }).select('plan createdAt');
+
+    const monthlyRevenue: { [key: string]: number } = {};
+    const mrr = businesses.reduce((total, business) => {
+      return total + (planPricing[business.plan as keyof typeof planPricing] || 0);
+    }, 0);
+
+    return {
+      mrr,
+      arr: mrr * 12,
+      growthRate: 0, // Would calculate based on historical data
+      revenueByPlan: {
+        free: businesses.filter(b => b.plan === 'free').length * planPricing.free,
+        starter: businesses.filter(b => b.plan === 'starter').length * planPricing.starter,
+        professional: businesses.filter(b => b.plan === 'professional').length * planPricing.professional,
+        enterprise: businesses.filter(b => b.plan === 'enterprise').length * planPricing.enterprise
+      }
+    };
+  }
+
+  // Helper method to get usage analytics
+  private async getUsageAnalytics(start: Date, end: Date) {
+    const businesses = await Business.find({}).select('usage limits plan');
+    
+    const totalUsage = businesses.reduce((acc, business) => {
+      return {
+        invoices: acc.invoices + business.usage.currentMonth.invoices,
+        apiCalls: acc.apiCalls + business.usage.currentMonth.apiCalls,
+        storageGB: acc.storageGB + (business.usage.currentMonth.storageUsedMB / 1024)
+      };
+    }, { invoices: 0, apiCalls: 0, storageGB: 0 });
+
+    const usageByPlan = {
+      free: { invoices: 0, apiCalls: 0, storageGB: 0, businesses: 0 },
+      starter: { invoices: 0, apiCalls: 0, storageGB: 0, businesses: 0 },
+      professional: { invoices: 0, apiCalls: 0, storageGB: 0, businesses: 0 },
+      enterprise: { invoices: 0, apiCalls: 0, storageGB: 0, businesses: 0 }
+    };
+
+    businesses.forEach(business => {
+      const plan = business.plan as keyof typeof usageByPlan;
+      if (usageByPlan[plan]) {
+        usageByPlan[plan].invoices += business.usage.currentMonth.invoices;
+        usageByPlan[plan].apiCalls += business.usage.currentMonth.apiCalls;
+        usageByPlan[plan].storageGB += business.usage.currentMonth.storageUsedMB / 1024;
+        usageByPlan[plan].businesses += 1;
+      }
+    });
+
+    return {
+      total: totalUsage,
+      byPlan: usageByPlan,
+      utilizationRate: {
+        invoices: businesses.reduce((acc, b) => acc + (b.usage.currentMonth.invoices / b.limits.monthlyInvoices), 0) / businesses.length,
+        apiCalls: businesses.reduce((acc, b) => acc + (b.usage.currentMonth.apiCalls / b.limits.apiCallsPerDay), 0) / businesses.length,
+        storage: businesses.reduce((acc, b) => acc + ((b.usage.currentMonth.storageUsedMB / 1024) / b.limits.storageGB), 0) / businesses.length
+      }
+    };
+  }
+
+  // Helper method to get top businesses
+  private async getTopBusinesses(start: Date, end: Date) {
+    const topByInvoices = await Invoice.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end }
+        }
+      },
+      {
+        $group: {
+          _id: "$business",
+          invoiceCount: { $sum: 1 },
+          totalAmount: { $sum: "$totalAmount" }
+        }
+      },
+      {
+        $sort: { invoiceCount: -1 }
+      },
+      {
+        $limit: 10
+      },
+      {
+        $lookup: {
+          from: "businesses",
+          localField: "_id",
+          foreignField: "_id",
+          as: "business"
+        }
+      },
+      {
+        $unwind: "$business"
+      },
+      {
+        $project: {
+          businessId: "$_id",
+          businessName: "$business.name",
+          plan: "$business.plan",
+          invoiceCount: 1,
+          totalAmount: 1
+        }
+      }
+    ]);
+
+    return topByInvoices;
+  }
 }

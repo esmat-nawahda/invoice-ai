@@ -385,6 +385,13 @@ export default function BusinessDetails() {
     },
   });
 
+  const recalculateStorageMutation = useMutation({
+    mutationFn: () => adminService.recalculateBusinessStorage(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["business", id] });
+    },
+  });
+
   const handleCreateKey = (e: React.FormEvent) => {
     e.preventDefault();
     createKeyMutation.mutate(newKeyData);
@@ -1147,13 +1154,27 @@ extract_invoice('./invoice.jpg')`;
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm text-gray-600">Storage</span>
-                    <span className="text-sm font-medium">
-                      {(
-                        (business?.usage?.currentMonth?.storageUsedMB ?? 0) /
-                        1024
-                      ).toFixed(2)}{" "}
-                      GB / {business?.limits?.storageGB ?? 0} GB
-                    </span>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm font-medium">
+                        {(
+                          (business?.usage?.currentMonth?.storageUsedMB ?? 0) /
+                          1024
+                        ).toFixed(2)}{" "}
+                        GB / {business?.limits?.storageGB ?? 0} GB
+                      </span>
+                      <button
+                        onClick={() => recalculateStorageMutation.mutate()}
+                        disabled={recalculateStorageMutation.isPending}
+                        className="text-xs text-primary-600 hover:text-primary-800 disabled:opacity-50"
+                        title="Recalculate storage based on current invoices"
+                      >
+                        {recalculateStorageMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary-600"></div>
+                        ) : (
+                          "Recalculate"
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div

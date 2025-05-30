@@ -102,6 +102,14 @@ router.post(
   adminController.resetBusinessUsage
 );
 
+// POST /admin/businesses/:id/recalculate-storage - Recalculate business storage
+router.post(
+  "/businesses/:id/recalculate-storage",
+  param("id").isMongoId(),
+  validateRequest,
+  adminController.recalculateBusinessStorage
+);
+
 // POST /admin/businesses/:id/suspend - Suspend business
 router.post(
   "/businesses/:id/suspend",

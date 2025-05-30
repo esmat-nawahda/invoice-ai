@@ -12,6 +12,7 @@
     "test:coverage": "jest --coverage",
     "create-test-business": "ts-node src/scripts/createTestBusiness.ts",
     "seed-invoices": "ts-node src/scripts/seed-invoices.ts",
+    "recalculate-storage": "ts-node src/scripts/recalculateStorage.ts",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
