@@ -462,6 +462,122 @@ export default function Analytics() {
         </div>
       </div>
 
+      {/* Currency Analytics */}
+      {analytics.currencyAnalytics && (
+        <div className="card">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <CurrencyDollarIcon className="h-5 w-5 mr-2" />
+              Currency Analytics (All amounts in USD)
+            </h3>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {analytics.currencyAnalytics.totalCurrencies}
+                </div>
+                <div className="text-sm text-gray-600">Active Currencies</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(analytics.currencyAnalytics.totals.totalAmountUSD)}
+                </div>
+                <div className="text-sm text-gray-600">Total Value (USD)</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {analytics.currencyAnalytics.totals.totalInvoices}
+                </div>
+                <div className="text-sm text-gray-600">Total Invoices</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(analytics.currencyAnalytics.totals.totalPaidUSD)}
+                </div>
+                <div className="text-sm text-gray-600">Total Paid (USD)</div>
+              </div>
+            </div>
+
+            {/* Currency breakdown table */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Currency
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Invoices
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Original Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      USD Equivalent
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Exchange Rate
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {analytics.currencyAnalytics.byCurrency.map((currency) => (
+                    <tr key={currency.currency} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className="text-lg font-medium text-gray-900">
+                            {currency.currency}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {currency.invoiceCount}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {currency.currency} {currency.originalTotalAmount.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {currency.totalAmountUSD !== null 
+                          ? formatCurrency(currency.totalAmountUSD)
+                          : 'N/A'
+                        }
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {currency.conversionRate !== null 
+                          ? currency.conversionRate.toFixed(4)
+                          : 'N/A'
+                        }
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Most popular currencies */}
+            <div className="mt-6">
+              <h4 className="text-md font-medium text-gray-900 mb-4">Most Popular Currencies</h4>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {analytics.currencyAnalytics.popularCurrencies.map((currency, index) => (
+                  <div key={currency.currency} className="bg-gray-50 p-4 rounded-lg">
+                    <div className="text-lg font-semibold text-gray-900">
+                      {currency.currency}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {currency.invoiceCount} invoices
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      #{index + 1} most used
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Revenue Breakdown */}
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-200">

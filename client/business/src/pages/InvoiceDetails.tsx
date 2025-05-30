@@ -15,13 +15,16 @@ import {
   ClockIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  ArrowsRightLeftIcon
 } from '@heroicons/react/24/outline';
 
 export default function InvoiceDetails() {
   const { id } = useParams<{ id: string }>();
   const { api } = useAuth();
   const [showImage, setShowImage] = useState(false);
+  const [targetCurrency, setTargetCurrency] = useState<string>('USD');
+  const [showCurrencyConverter, setShowCurrencyConverter] = useState(false);
   const [imageError, setImageError] = useState(false);
   
   const { data: invoice, isLoading, error } = useQuery({
@@ -32,6 +35,32 @@ export default function InvoiceDetails() {
     },
     enabled: !!api && !!id,
   });
+
+  // Query for currency conversion
+  const { data: currencyConversion, isLoading: isConverting } = useQuery({
+    queryKey: ['currency-conversion', invoice?.total, invoice?.currency, targetCurrency],
+    queryFn: async () => {
+      if (!api || !invoice || invoice.currency === targetCurrency) return null;
+      // This would be an API call to convert currency
+      // For now, we'll simulate the conversion
+      const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${invoice.currency}`);
+      const data = await response.json();
+      const rate = data.rates[targetCurrency];
+      if (rate) {
+        return {
+          originalAmount: invoice.total,
+          originalCurrency: invoice.currency,
+          convertedAmount: invoice.total * rate,
+          targetCurrency,
+          rate
+        };
+      }
+      return null;
+    },
+    enabled: !!api && !!invoice && showCurrencyConverter && invoice.currency !== targetCurrency,
+  });
+
+  const commonCurrencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY', 'ILS', 'SAR', 'AED'];
 
   const { data: imageData, isLoading: imageLoading } = useQuery({
     queryKey: ['invoice-image', id],
@@ -548,6 +577,89 @@ export default function InvoiceDetails() {
                     ))}
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Currency Conversion Section */}
+          <div className="mt-8 card">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                  <ArrowsRightLeftIcon className="h-5 w-5 mr-2" />
+                  Currency Conversion
+                </h3>
+                <button
+                  onClick={() => setShowCurrencyConverter(!showCurrencyConverter)}
+                  className="text-sm text-blue-600 hover:text-blue-500"
+                >
+                  {showCurrencyConverter ? 'Hide' : 'Show'} Converter
+                </button>
+              </div>
+            </div>
+            
+            {showCurrencyConverter && (
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Convert to:
+                    </label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      value={targetCurrency}
+                      onChange={(e) => setTargetCurrency(e.target.value)}
+                    >
+                      {commonCurrencies
+                        .filter(currency => currency !== invoice.currency)
+                        .map(currency => (
+                          <option key={currency} value={currency}>
+                            {currency}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-1">Original Amount</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {invoice.currency} {invoice.total.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-1">Converted Amount</div>
+                    {isConverting ? (
+                      <div className="text-sm text-gray-500">Converting...</div>
+                    ) : currencyConversion ? (
+                      <div>
+                        <div className="text-lg font-semibold text-blue-900">
+                          {targetCurrency} {currencyConversion.convertedAmount.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Rate: 1 {invoice.currency} = {currencyConversion.rate.toFixed(4)} {targetCurrency}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">Select a currency to convert</div>
+                    )}
+                  </div>
+                </div>
+
+                {currencyConversion && (
+                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-start">
+                      <ExclamationCircleIcon className="h-5 w-5 text-yellow-400 mt-0.5 mr-2" />
+                      <div className="text-sm text-yellow-800">
+                        <p className="font-medium">Exchange Rate Notice</p>
+                        <p className="mt-1">
+                          This conversion uses live exchange rates and is for reference only. 
+                          Actual rates may vary depending on your payment processor or bank.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

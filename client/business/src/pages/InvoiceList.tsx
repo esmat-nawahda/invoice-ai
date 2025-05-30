@@ -8,10 +8,11 @@ import type { Invoice } from '../utils/api';
 export default function InvoiceList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currencyFilter, setCurrencyFilter] = useState('all');
   const { api } = useAuth();
 
   const { data: invoices, isLoading } = useQuery({
-    queryKey: ['invoices', searchTerm, statusFilter],
+    queryKey: ['invoices', searchTerm, statusFilter, currencyFilter],
     queryFn: () => {
       if (!api) throw new Error('API not initialized');
       return api.get<Invoice[]>('/invoices', {
@@ -88,6 +89,22 @@ export default function InvoiceList() {
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
+          <div>
+            <label htmlFor="currency-filter" className="block text-sm font-medium text-gray-700 mb-1">
+              Currency
+            </label>
+            <select
+              id="currency-filter"
+              className="input"
+              value={currencyFilter}
+              onChange={(e) => setCurrencyFilter(e.target.value)}
+            >
+              <option value="all">All Currencies</option>
+              {[...new Set(invoices?.map(invoice => invoice.currency) || [])].sort().map(currency => (
+                <option key={currency} value={currency}>{currency}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -118,7 +135,13 @@ export default function InvoiceList() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {invoices?.map((invoice) => (
+              {invoices?.filter(invoice => {
+                const matchesSearch = invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                     invoice.vendor?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
+                const matchesCurrency = currencyFilter === 'all' || invoice.currency === currencyFilter;
+                return matchesSearch && matchesStatus && matchesCurrency;
+              }).map((invoice) => (
                 <tr key={invoice._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{invoice.invoiceNumber}</div>

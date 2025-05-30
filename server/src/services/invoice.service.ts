@@ -602,6 +602,12 @@ export class InvoiceService {
         - Arabic: فاتورة, إجمالي, المبلغ, التاريخ, ضريبة, المجموع الفرعي, البائع, العميل
         - Hebrew: חשבונית, סכום, תאריך, מס, סה"כ, ספק, לקוח, מחיר
         
+        CURRENCY DETECTION:
+        - Look for currency symbols: $, €, £, ₪, ¥, ر.س, د.إ, ج.م, د.ا, د.ك
+        - Look for currency codes: USD, EUR, GBP, ILS, JPY, SAR, AED, EGP, JOD, KWD
+        - Detect currency from text context and country information
+        - If no currency detected, use USD as default
+        
         EXTRACTION CONTEXT:
         - OCR Strategy Used: {strategy}
         - OCR Confidence: {confidence}

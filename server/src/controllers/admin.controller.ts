@@ -3,11 +3,15 @@ import { BaseController } from "./base.controller";
 import { Business } from "../models/business.model";
 import { ApiKey } from "../models/apiKey.model";
 import { Invoice } from "../models/invoice.model";
+import { CurrencyService } from "../services/currency.service";
 import logger from "../config/logger";
 
 export class AdminController extends BaseController<any> {
+  private currencyService: CurrencyService;
+
   constructor() {
     super();
+    this.currencyService = new CurrencyService();
   }
   // Get all businesses with pagination and filtering
   public getAllBusinesses = async (req: Request, res: Response) => {
@@ -742,6 +746,9 @@ export class AdminController extends BaseController<any> {
       
       // Get top businesses
       const topBusinesses = await this.getTopBusinesses(start, end);
+      
+      // Get currency analytics
+      const currencyAnalytics = await this.getCurrencyAnalytics(start, end);
 
       this.sendResponse(res, {
         dateRange: { start, end },
@@ -749,7 +756,8 @@ export class AdminController extends BaseController<any> {
         invoiceAnalytics,
         revenueAnalytics,
         usageAnalytics,
-        topBusinesses
+        topBusinesses,
+        currencyAnalytics
       });
     } catch (error) {
       logger.error("Error fetching analytics:", error);
@@ -1029,5 +1037,132 @@ export class AdminController extends BaseController<any> {
     ]);
 
     return topByInvoices;
+  }
+
+  // Helper method to get currency analytics
+  private async getCurrencyAnalytics(start: Date, end: Date) {
+    try {
+      // Get invoice data by currency
+      const currencyData = await Invoice.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: start, $lte: end },
+            isDeleted: false
+          }
+        },
+        {
+          $group: {
+            _id: '$currency',
+            totalAmount: { $sum: '$totalAmount' },
+            invoiceCount: { $sum: 1 },
+            avgAmount: { $avg: '$totalAmount' },
+            paidAmount: { $sum: '$paidAmount' }
+          }
+        },
+        {
+          $sort: { totalAmount: -1 }
+        }
+      ]);
+
+      // Convert all amounts to USD for comparison
+      const convertedData = await Promise.all(
+        currencyData.map(async (item) => {
+          try {
+            if (item._id === 'USD') {
+              return {
+                currency: item._id,
+                originalTotalAmount: item.totalAmount,
+                totalAmountUSD: item.totalAmount,
+                originalAvgAmount: item.avgAmount,
+                avgAmountUSD: item.avgAmount,
+                originalPaidAmount: item.paidAmount,
+                paidAmountUSD: item.paidAmount,
+                invoiceCount: item.invoiceCount,
+                conversionRate: 1
+              };
+            }
+
+            const totalConversion = await this.currencyService.convertCurrency(
+              item.totalAmount,
+              item._id,
+              'USD'
+            );
+
+            const avgConversion = await this.currencyService.convertCurrency(
+              item.avgAmount,
+              item._id,
+              'USD'
+            );
+
+            const paidConversion = await this.currencyService.convertCurrency(
+              item.paidAmount || 0,
+              item._id,
+              'USD'
+            );
+
+            return {
+              currency: item._id,
+              originalTotalAmount: item.totalAmount,
+              totalAmountUSD: totalConversion.convertedAmount,
+              originalAvgAmount: item.avgAmount,
+              avgAmountUSD: avgConversion.convertedAmount,
+              originalPaidAmount: item.paidAmount,
+              paidAmountUSD: paidConversion.convertedAmount,
+              invoiceCount: item.invoiceCount,
+              conversionRate: totalConversion.rate
+            };
+          } catch (error) {
+            logger.warn(`Failed to convert ${item._id} to USD:`, error);
+            return {
+              currency: item._id,
+              originalTotalAmount: item.totalAmount,
+              totalAmountUSD: null,
+              originalAvgAmount: item.avgAmount,
+              avgAmountUSD: null,
+              originalPaidAmount: item.paidAmount,
+              paidAmountUSD: null,
+              invoiceCount: item.invoiceCount,
+              conversionRate: null
+            };
+          }
+        })
+      );
+
+      // Calculate totals
+      const totals = convertedData.reduce(
+        (acc, item) => {
+          acc.totalInvoices += item.invoiceCount;
+          if (item.totalAmountUSD !== null) {
+            acc.totalAmountUSD += item.totalAmountUSD;
+            acc.totalPaidUSD += item.paidAmountUSD || 0;
+          }
+          return acc;
+        },
+        { totalInvoices: 0, totalAmountUSD: 0, totalPaidUSD: 0 }
+      );
+
+      // Get most popular currencies
+      const popularCurrencies = convertedData
+        .sort((a, b) => b.invoiceCount - a.invoiceCount)
+        .slice(0, 5);
+
+      return {
+        byCurrency: convertedData,
+        totals,
+        popularCurrencies,
+        totalCurrencies: convertedData.length,
+        baseCurrency: 'USD'
+      };
+    } catch (error) {
+      logger.error('Failed to get currency analytics:', error);
+      return {
+        byCurrency: [],
+        totals: { totalInvoices: 0, totalAmountUSD: 0, totalPaidUSD: 0 },
+        popularCurrencies: [],
+        totalCurrencies: 0,
+        baseCurrency: 'USD',
+        error: 'Failed to load currency analytics'
+      };
+    }
   }
 }

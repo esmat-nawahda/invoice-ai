@@ -31,6 +31,14 @@ export interface IBusiness extends BaseDocument {
   currency: string;
   language: string;
   
+  // Currency Preferences
+  currencyPreferences: {
+    baseCurrency: string; // Primary currency for the business
+    displayCurrencies: string[]; // Additional currencies to show in reports
+    autoConvert: boolean; // Automatically convert foreign invoices to base currency
+    exchangeRateProvider: 'exchangerate-api' | 'fixer' | 'openexchangerates' | 'manual';
+  };
+  
   // Billing Information
   billing: {
     method?: 'credit_card' | 'invoice' | 'bank_transfer';
@@ -172,6 +180,29 @@ const businessSchema = new Schema<IBusiness>({
     type: String,
     required: true,
     default: 'en'
+  },
+  
+  // Currency Preferences
+  currencyPreferences: {
+    baseCurrency: {
+      type: String,
+      required: true,
+      uppercase: true,
+      default: 'USD'
+    },
+    displayCurrencies: [{
+      type: String,
+      uppercase: true
+    }],
+    autoConvert: {
+      type: Boolean,
+      default: false
+    },
+    exchangeRateProvider: {
+      type: String,
+      enum: ['exchangerate-api', 'fixer', 'openexchangerates', 'manual'],
+      default: 'exchangerate-api'
+    }
   },
   
   // Billing Information

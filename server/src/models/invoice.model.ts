@@ -92,6 +92,21 @@ export interface IInvoice extends BaseDocument {
   
   // Custom fields (for business-specific data)
   customFields?: Record<string, any>;
+  
+  // Currency conversion helpers
+  convertToTargetCurrency?(targetCurrency: string): Promise<{
+    originalAmount: number;
+    originalCurrency: string;
+    convertedAmount: number;
+    targetCurrency: string;
+    rate: number;
+  }>;
+  
+  getAmountInMultipleCurrencies?(currencies: string[]): Promise<Array<{
+    currency: string;
+    amount: number;
+    formatted: string;
+  }>>;
 }
 
 const lineItemSchema = new Schema<ILineItem>({
@@ -477,6 +492,51 @@ invoiceSchema.statics.getStatisticsByBusiness = async function(businessId: strin
       }
     }
   ]);
+};
+
+// Currency conversion instance methods
+invoiceSchema.methods.convertToTargetCurrency = async function(targetCurrency: string) {
+  const { CurrencyService } = await import('../services/currency.service');
+  const currencyService = new CurrencyService();
+  
+  return currencyService.convertCurrency(
+    this.totalAmount,
+    this.currency,
+    targetCurrency
+  );
+};
+
+invoiceSchema.methods.getAmountInMultipleCurrencies = async function(currencies: string[]) {
+  const { CurrencyService } = await import('../services/currency.service');
+  const currencyService = new CurrencyService();
+  
+  const results = [];
+  
+  for (const currency of currencies) {
+    try {
+      const conversion = await currencyService.convertCurrency(
+        this.totalAmount,
+        this.currency,
+        currency
+      );
+      
+      const formatted = await currencyService.formatCurrency(
+        conversion.convertedAmount,
+        currency
+      );
+      
+      results.push({
+        currency,
+        amount: conversion.convertedAmount,
+        formatted
+      });
+    } catch (error) {
+      // Skip currencies that fail conversion
+      console.warn(`Failed to convert to ${currency}:`, error);
+    }
+  }
+  
+  return results;
 };
 
 export const Invoice = model<IInvoice>('Invoice', invoiceSchema);
