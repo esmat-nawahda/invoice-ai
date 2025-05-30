@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
   PhotoIcon,
@@ -13,9 +13,11 @@ import {
   ClockIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  XCircleIcon
-} from '@heroicons/react/24/outline';
-import { adminService, type Invoice } from '../services/adminService';
+  XCircleIcon,
+  MagnifyingGlassPlusIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import { adminService, type Invoice } from "../services/adminService";
 
 interface ExtendedInvoice extends Invoice {
   invoiceNumber: string;
@@ -66,22 +68,27 @@ interface ExtendedInvoice extends Invoice {
 
 export default function InvoiceDetails() {
   const { id } = useParams<{ id: string }>();
-  const [showImage, setShowImage] = useState(false);
+  const [showImage, setShowImage] = useState(true);
   const [imageError, setImageError] = useState(false);
-  
-  const { data: invoice, isLoading, error } = useQuery({
-    queryKey: ['admin-invoice', id],
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
+  const {
+    data: invoice,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["admin-invoice", id],
     queryFn: () => {
-      if (!id) throw new Error('ID missing');
+      if (!id) throw new Error("ID missing");
       return adminService.getInvoiceById(id);
     },
     enabled: !!id,
   });
 
   const { data: imageData, isLoading: imageLoading } = useQuery({
-    queryKey: ['admin-invoice-image', id],
+    queryKey: ["admin-invoice-image", id],
     queryFn: async () => {
-      if (!id) throw new Error('ID missing');
+      if (!id) throw new Error("ID missing");
       try {
         const response = await adminService.getInvoiceImage(id);
         return response;
@@ -96,38 +103,38 @@ export default function InvoiceDetails() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'paid':
-      case 'completed':
-        return 'text-green-600 bg-green-100';
-      case 'pending':
-      case 'sent':
-      case 'processing':
-        return 'text-yellow-600 bg-yellow-100';
-      case 'overdue':
-      case 'failed':
-        return 'text-red-600 bg-red-100';
-      case 'draft':
-        return 'text-gray-600 bg-gray-100';
-      case 'cancelled':
-        return 'text-red-600 bg-red-100';
+      case "paid":
+      case "completed":
+        return "text-green-600 bg-green-100";
+      case "pending":
+      case "sent":
+      case "processing":
+        return "text-yellow-600 bg-yellow-100";
+      case "overdue":
+      case "failed":
+        return "text-red-600 bg-red-100";
+      case "draft":
+        return "text-gray-600 bg-gray-100";
+      case "cancelled":
+        return "text-red-600 bg-red-100";
       default:
-        return 'text-gray-600 bg-gray-100';
+        return "text-gray-600 bg-gray-100";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'paid':
-      case 'completed':
+      case "paid":
+      case "completed":
         return <CheckCircleIcon className="h-5 w-5" />;
-      case 'pending':
-      case 'sent':
-      case 'processing':
+      case "pending":
+      case "sent":
+      case "processing":
         return <ClockIcon className="h-5 w-5" />;
-      case 'overdue':
-      case 'failed':
+      case "overdue":
+      case "failed":
         return <ExclamationCircleIcon className="h-5 w-5" />;
-      case 'cancelled':
+      case "cancelled":
         return <XCircleIcon className="h-5 w-5" />;
       default:
         return <DocumentTextIcon className="h-5 w-5" />;
@@ -147,9 +154,11 @@ export default function InvoiceDetails() {
     return (
       <div className="text-center py-12">
         <ExclamationCircleIcon className="mx-auto h-12 w-12 text-red-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Error loading invoice</h3>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          Error loading invoice
+        </h3>
         <p className="mt-1 text-sm text-gray-500">
-          {error instanceof Error ? error.message : 'Failed to load invoice'}
+          {error instanceof Error ? error.message : "Failed to load invoice"}
         </p>
         <Link
           to="/invoices"
@@ -166,7 +175,9 @@ export default function InvoiceDetails() {
     return (
       <div className="text-center py-12">
         <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Invoice not found</h3>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          Invoice not found
+        </h3>
         <p className="mt-1 text-sm text-gray-500">
           The invoice you're looking for doesn't exist or has been deleted.
         </p>
@@ -199,7 +210,11 @@ export default function InvoiceDetails() {
               Invoice {fullInvoice.invoiceNumber}
             </h1>
             <div className="flex items-center mt-2 space-x-4">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(fullInvoice.status)}`}>
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                  fullInvoice.status
+                )}`}
+              >
                 {getStatusIcon(fullInvoice.status)}
                 <span className="ml-1.5 capitalize">{fullInvoice.status}</span>
               </span>
@@ -215,7 +230,7 @@ export default function InvoiceDetails() {
               </Link>
             </div>
           </div>
-          
+
           {/* Image Toggle Button */}
           <button
             onClick={() => setShowImage(!showImage)}
@@ -242,22 +257,38 @@ export default function InvoiceDetails() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow border">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                  <PhotoIcon className="h-5 w-5 mr-2" />
-                  Original Invoice
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                    <PhotoIcon className="h-5 w-5 mr-2" />
+                    Original Invoice
+                  </h3>
+                  {!imageLoading && !imageError && imageData && (
+                    <button
+                      onClick={() => setIsImageModalOpen(true)}
+                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                      title="View full size"
+                    >
+                      <MagnifyingGlassPlusIcon className="h-4 w-4 mr-1" />
+                      Zoom
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="p-6">
                 {imageLoading ? (
                   <div className="flex items-center justify-center h-64">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                    <span className="ml-2 text-sm text-gray-600">Loading image...</span>
+                    <span className="ml-2 text-sm text-gray-600">
+                      Loading image...
+                    </span>
                   </div>
                 ) : imageError || !imageData ? (
                   <div className="flex flex-col items-center justify-center h-64 text-gray-500">
                     <PhotoIcon className="h-12 w-12 mb-2" />
                     <p className="text-sm text-center">
-                      {imageError ? 'Failed to load image' : 'No image available'}
+                      {imageError
+                        ? "Failed to load image"
+                        : "No image available"}
                     </p>
                   </div>
                 ) : (
@@ -270,9 +301,20 @@ export default function InvoiceDetails() {
                     />
                     {fullInvoice.extractionMetadata && (
                       <div className="text-xs text-gray-500 space-y-1">
-                        <div>Confidence: {Math.round(fullInvoice.extractionMetadata.confidence * 100)}%</div>
-                        <div>Processing time: {fullInvoice.extractionMetadata.processingTime}ms</div>
-                        <div>Language: {fullInvoice.extractionMetadata.language}</div>
+                        <div>
+                          Confidence:{" "}
+                          {Math.round(
+                            fullInvoice.extractionMetadata.confidence * 100
+                          )}
+                          %
+                        </div>
+                        <div>
+                          Processing time:{" "}
+                          {fullInvoice.extractionMetadata.processingTime}ms
+                        </div>
+                        <div>
+                          Language: {fullInvoice.extractionMetadata.language}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -300,7 +342,9 @@ export default function InvoiceDetails() {
                       <label className="block text-sm font-medium text-gray-500 mb-1">
                         Invoice Number
                       </label>
-                      <p className="text-sm text-gray-900 font-mono">{fullInvoice.invoiceNumber}</p>
+                      <p className="text-sm text-gray-900 font-mono">
+                        {fullInvoice.invoiceNumber}
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-500 mb-1">
@@ -326,11 +370,13 @@ export default function InvoiceDetails() {
                       <label className="block text-sm font-medium text-gray-500 mb-1">
                         Type
                       </label>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md capitalize ${
-                        fullInvoice.type === 'received' 
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                          : 'bg-green-50 text-green-700 border border-green-200'
-                      }`}>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md capitalize ${
+                          fullInvoice.type === "received"
+                            ? "bg-blue-50 text-blue-700 border border-blue-200"
+                            : "bg-green-50 text-green-700 border border-green-200"
+                        }`}
+                      >
                         {fullInvoice.type}
                       </span>
                     </div>
@@ -340,7 +386,9 @@ export default function InvoiceDetails() {
                       <label className="block text-sm font-medium text-gray-500 mb-1">
                         Currency
                       </label>
-                      <p className="text-sm text-gray-900">{fullInvoice.currency}</p>
+                      <p className="text-sm text-gray-900">
+                        {fullInvoice.currency}
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-500 mb-1">
@@ -348,7 +396,9 @@ export default function InvoiceDetails() {
                       </label>
                       <div className="flex items-center text-lg font-semibold text-gray-900">
                         <CurrencyDollarIcon className="h-5 w-5 mr-1 text-gray-400" />
-                        {fullInvoice.currency} {fullInvoice.total?.toFixed(2) || fullInvoice.amount?.toFixed(2)}
+                        {fullInvoice.currency}{" "}
+                        {fullInvoice.total?.toFixed(2) ||
+                          fullInvoice.amount?.toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -381,14 +431,18 @@ export default function InvoiceDetails() {
                       <label className="block text-sm font-medium text-gray-500 mb-1">
                         Vendor Name
                       </label>
-                      <p className="text-sm text-gray-900 font-medium">{fullInvoice.vendor?.name || 'N/A'}</p>
+                      <p className="text-sm text-gray-900 font-medium">
+                        {fullInvoice.vendor?.name || "N/A"}
+                      </p>
                     </div>
                     {fullInvoice.vendor?.email && (
                       <div>
                         <label className="block text-sm font-medium text-gray-500 mb-1">
                           Email
                         </label>
-                        <p className="text-sm text-gray-900">{fullInvoice.vendor.email}</p>
+                        <p className="text-sm text-gray-900">
+                          {fullInvoice.vendor.email}
+                        </p>
                       </div>
                     )}
                     {fullInvoice.vendor?.phone && (
@@ -396,7 +450,9 @@ export default function InvoiceDetails() {
                         <label className="block text-sm font-medium text-gray-500 mb-1">
                           Phone
                         </label>
-                        <p className="text-sm text-gray-900">{fullInvoice.vendor.phone}</p>
+                        <p className="text-sm text-gray-900">
+                          {fullInvoice.vendor.phone}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -406,7 +462,9 @@ export default function InvoiceDetails() {
                         <label className="block text-sm font-medium text-gray-500 mb-1">
                           Address
                         </label>
-                        <p className="text-sm text-gray-900 whitespace-pre-line">{fullInvoice.vendor.address}</p>
+                        <p className="text-sm text-gray-900 whitespace-pre-line">
+                          {fullInvoice.vendor.address}
+                        </p>
                       </div>
                     )}
                     {fullInvoice.vendor?.taxId && (
@@ -414,7 +472,9 @@ export default function InvoiceDetails() {
                         <label className="block text-sm font-medium text-gray-500 mb-1">
                           Tax ID
                         </label>
-                        <p className="text-sm text-gray-900 font-mono">{fullInvoice.vendor.taxId}</p>
+                        <p className="text-sm text-gray-900 font-mono">
+                          {fullInvoice.vendor.taxId}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -438,14 +498,18 @@ export default function InvoiceDetails() {
                         <label className="block text-sm font-medium text-gray-500 mb-1">
                           Customer Name
                         </label>
-                        <p className="text-sm text-gray-900 font-medium">{fullInvoice.customer.name}</p>
+                        <p className="text-sm text-gray-900 font-medium">
+                          {fullInvoice.customer.name}
+                        </p>
                       </div>
                       {fullInvoice.customer.email && (
                         <div>
                           <label className="block text-sm font-medium text-gray-500 mb-1">
                             Email
                           </label>
-                          <p className="text-sm text-gray-900">{fullInvoice.customer.email}</p>
+                          <p className="text-sm text-gray-900">
+                            {fullInvoice.customer.email}
+                          </p>
                         </div>
                       )}
                       {fullInvoice.customer.phone && (
@@ -453,7 +517,9 @@ export default function InvoiceDetails() {
                           <label className="block text-sm font-medium text-gray-500 mb-1">
                             Phone
                           </label>
-                          <p className="text-sm text-gray-900">{fullInvoice.customer.phone}</p>
+                          <p className="text-sm text-gray-900">
+                            {fullInvoice.customer.phone}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -463,7 +529,9 @@ export default function InvoiceDetails() {
                           <label className="block text-sm font-medium text-gray-500 mb-1">
                             Address
                           </label>
-                          <p className="text-sm text-gray-900 whitespace-pre-line">{fullInvoice.customer.address}</p>
+                          <p className="text-sm text-gray-900 whitespace-pre-line">
+                            {fullInvoice.customer.address}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -505,7 +573,9 @@ export default function InvoiceDetails() {
                       {fullInvoice.items.map((item, index) => (
                         <tr key={index} className="hover:bg-gray-50">
                           <td className="px-6 py-4 text-sm text-gray-900">
-                            <div className="font-medium">{item.description}</div>
+                            <div className="font-medium">
+                              {item.description}
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900 text-right">
                             {item.quantity}
@@ -514,7 +584,7 @@ export default function InvoiceDetails() {
                             {fullInvoice.currency} {item.unitPrice.toFixed(2)}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900 text-right">
-                            {item.taxRate ? `${item.taxRate}%` : '-'}
+                            {item.taxRate ? `${item.taxRate}%` : "-"}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900 text-right font-mono font-medium">
                             {fullInvoice.currency} {item.total.toFixed(2)}
@@ -524,15 +594,22 @@ export default function InvoiceDetails() {
                     </tbody>
                     <tfoot className="bg-gray-50">
                       <tr>
-                        <td colSpan={4} className="px-6 py-3 text-sm font-medium text-gray-900 text-right">
+                        <td
+                          colSpan={4}
+                          className="px-6 py-3 text-sm font-medium text-gray-900 text-right"
+                        >
                           Subtotal:
                         </td>
                         <td className="px-6 py-3 text-sm font-mono font-medium text-gray-900 text-right">
-                          {fullInvoice.currency} {fullInvoice.subtotal.toFixed(2)}
+                          {fullInvoice.currency}{" "}
+                          {fullInvoice.subtotal.toFixed(2)}
                         </td>
                       </tr>
                       <tr>
-                        <td colSpan={4} className="px-6 py-3 text-sm font-medium text-gray-900 text-right">
+                        <td
+                          colSpan={4}
+                          className="px-6 py-3 text-sm font-medium text-gray-900 text-right"
+                        >
                           Tax:
                         </td>
                         <td className="px-6 py-3 text-sm font-mono font-medium text-gray-900 text-right">
@@ -540,7 +617,10 @@ export default function InvoiceDetails() {
                         </td>
                       </tr>
                       <tr className="border-t-2 border-gray-300">
-                        <td colSpan={4} className="px-6 py-3 text-base font-bold text-gray-900 text-right">
+                        <td
+                          colSpan={4}
+                          className="px-6 py-3 text-base font-bold text-gray-900 text-right"
+                        >
                           Total:
                         </td>
                         <td className="px-6 py-3 text-base font-mono font-bold text-gray-900 text-right">
@@ -554,36 +634,41 @@ export default function InvoiceDetails() {
             )}
 
             {/* Payment History */}
-            {fullInvoice.paymentHistory && fullInvoice.paymentHistory.length > 0 && (
-              <div className="bg-white rounded-lg shadow border">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Payment History ({fullInvoice.paymentHistory.length})
-                  </h3>
-                </div>
-                <div className="p-6">
-                  <div className="space-y-3">
-                    {fullInvoice.paymentHistory.map((payment, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {fullInvoice.currency} {payment.amount.toFixed(2)}
+            {fullInvoice.paymentHistory &&
+              fullInvoice.paymentHistory.length > 0 && (
+                <div className="bg-white rounded-lg shadow border">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Payment History ({fullInvoice.paymentHistory.length})
+                    </h3>
+                  </div>
+                  <div className="p-6">
+                    <div className="space-y-3">
+                      {fullInvoice.paymentHistory.map((payment, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {fullInvoice.currency} {payment.amount.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {payment.method} •{" "}
+                              {new Date(payment.date).toLocaleDateString()}
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {payment.method} • {new Date(payment.date).toLocaleDateString()}
-                          </div>
+                          {payment.reference && (
+                            <div className="text-xs text-gray-500 font-mono">
+                              {payment.reference}
+                            </div>
+                          )}
                         </div>
-                        {payment.reference && (
-                          <div className="text-xs text-gray-500 font-mono">
-                            {payment.reference}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Attachments */}
             {fullInvoice.attachments && fullInvoice.attachments.length > 0 && (
@@ -596,7 +681,10 @@ export default function InvoiceDetails() {
                 <div className="p-6">
                   <div className="space-y-2">
                     {fullInvoice.attachments.map((attachment, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                      >
                         <div className="flex items-center">
                           <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-2" />
                           <div>
@@ -625,6 +713,68 @@ export default function InvoiceDetails() {
           </div>
         </div>
       </div>
+
+      {/* Image Zoom Modal */}
+      {isImageModalOpen && imageData && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 bg-black bg-opacity-75 transition-opacity"
+              onClick={() => setIsImageModalOpen(false)}
+            ></div>
+
+            {/* Modal panel */}
+            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Invoice {fullInvoice.invoiceNumber} - Original Image
+                </h3>
+                <button
+                  onClick={() => setIsImageModalOpen(false)}
+                  className="rounded-md bg-white text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <span className="sr-only">Close</span>
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Large image */}
+              <div className="max-h-[80vh] overflow-auto">
+                <img
+                  src={`data:${imageData.mimeType};base64,${imageData.image}`}
+                  alt={`Invoice ${fullInvoice.invoiceNumber} - Full Size`}
+                  className="w-full h-auto rounded-lg shadow-lg"
+                  onError={() => setImageError(true)}
+                />
+              </div>
+
+              {/* Image metadata */}
+              {fullInvoice.extractionMetadata && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 grid grid-cols-3 gap-4">
+                    <div>
+                      <span className="font-medium">Confidence:</span>{" "}
+                      {Math.round(
+                        fullInvoice.extractionMetadata.confidence * 100
+                      )}
+                      %
+                    </div>
+                    <div>
+                      <span className="font-medium">Processing time:</span>{" "}
+                      {fullInvoice.extractionMetadata.processingTime}ms
+                    </div>
+                    <div>
+                      <span className="font-medium">Language:</span>{" "}
+                      {fullInvoice.extractionMetadata.language}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
