@@ -1,13 +1,13 @@
 import mongoose from 'mongoose';
 import { Invoice } from '../models/invoice.model';
 import { Business } from '../models/business.model';
-import { config } from '../config/environment';
+import config from '../config/environment';
 import logger from '../config/logger';
 
 async function recalculateStorage() {
   try {
     // Connect to database
-    await mongoose.connect(config.database.uri);
+    await mongoose.connect(config.mongodb.uri);
     logger.info('Connected to database');
 
     // Get all businesses

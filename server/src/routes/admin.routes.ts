@@ -94,6 +94,16 @@ router.delete(
 // GET /admin/statistics - Get platform statistics
 router.get("/statistics", adminController.getPlatformStatistics);
 
+// GET /admin/analytics - Get analytics data
+router.get(
+  "/analytics",
+  query("startDate").optional().isISO8601(),
+  query("endDate").optional().isISO8601(),
+  query("groupBy").optional().isIn(["day", "week", "month"]),
+  validateRequest,
+  adminController.getAnalytics
+);
+
 // POST /admin/businesses/:id/reset-usage - Reset business usage
 router.post(
   "/businesses/:id/reset-usage",

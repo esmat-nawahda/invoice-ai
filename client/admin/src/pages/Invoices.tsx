@@ -32,10 +32,16 @@ function InvoiceThumbnail({ invoiceId }: InvoiceThumbnailProps) {
 
   const { data: imageData, isLoading: imageLoading } = useQuery({
     queryKey: ['invoice-image', invoiceId],
-    queryFn: () => adminService.getInvoiceImage(invoiceId),
+    queryFn: async () => {
+      try {
+        return await adminService.getInvoiceImage(invoiceId);
+      } catch (error) {
+        setImageError(true);
+        throw error;
+      }
+    },
     enabled: showImage,
     retry: false,
-    onError: () => setImageError(true),
   });
 
   if (!showImage) {
@@ -69,7 +75,7 @@ function InvoiceThumbnail({ invoiceId }: InvoiceThumbnailProps) {
   return (
     <div className="relative group">
       <img
-        src={`data:${imageData.mimeType};base64,${imageData.image}`}
+        src={`data:${imageData?.mimeType || 'image/jpeg'};base64,${imageData?.image || ''}`}
         alt="Invoice thumbnail"
         className="w-12 h-12 rounded-lg object-cover border border-gray-200 cursor-pointer hover:border-primary-500 transition-colors"
         onError={() => setImageError(true)}

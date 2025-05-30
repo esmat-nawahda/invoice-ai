@@ -115,6 +115,86 @@ export interface InvoiceFilters {
   dateTo?: string;
 }
 
+export interface AnalyticsData {
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  businessGrowth: Array<{
+    date: string;
+    count: number;
+    planBreakdown: {
+      free: number;
+      starter: number;
+      professional: number;
+      enterprise: number;
+    };
+  }>;
+  invoiceAnalytics: {
+    total: number;
+    totalAmount: number;
+    averageAmount: number;
+    typeBreakdown: {
+      received: number;
+      sent: number;
+    };
+    statusBreakdown: {
+      draft: number;
+      pending: number;
+      approved: number;
+      rejected: number;
+      paid: number;
+      cancelled: number;
+    };
+    dailyStats: Array<{
+      _id: string;
+      count: number;
+      amount: number;
+    }>;
+    currencyBreakdown: Array<{
+      _id: string;
+      count: number;
+      totalAmount: number;
+    }>;
+  };
+  revenueAnalytics: {
+    mrr: number;
+    arr: number;
+    growthRate: number;
+    revenueByPlan: {
+      free: number;
+      starter: number;
+      professional: number;
+      enterprise: number;
+    };
+  };
+  usageAnalytics: {
+    total: {
+      invoices: number;
+      apiCalls: number;
+      storageGB: number;
+    };
+    byPlan: {
+      free: { invoices: number; apiCalls: number; storageGB: number; businesses: number };
+      starter: { invoices: number; apiCalls: number; storageGB: number; businesses: number };
+      professional: { invoices: number; apiCalls: number; storageGB: number; businesses: number };
+      enterprise: { invoices: number; apiCalls: number; storageGB: number; businesses: number };
+    };
+    utilizationRate: {
+      invoices: number;
+      apiCalls: number;
+      storage: number;
+    };
+  };
+  topBusinesses: Array<{
+    businessId: string;
+    businessName: string;
+    plan: string;
+    invoiceCount: number;
+    totalAmount: number;
+  }>;
+}
+
 class AdminService {
   // Business Management
   async getAllBusinesses(
@@ -188,6 +268,15 @@ class AdminService {
   // Platform Statistics
   async getPlatformStatistics(): Promise<PlatformStatistics> {
     return adminApi.get("/admin/statistics");
+  }
+
+  // Analytics
+  async getAnalytics(filters: {
+    startDate?: string;
+    endDate?: string;
+    groupBy?: "day" | "week" | "month";
+  } = {}): Promise<AnalyticsData> {
+    return adminApi.get("/admin/analytics", filters);
   }
 
   // Invoice Management
