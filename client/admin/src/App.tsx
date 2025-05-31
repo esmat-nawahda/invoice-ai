@@ -17,6 +17,7 @@ import Invoices from "./pages/Invoices";
 import InvoiceDetails from "./pages/InvoiceDetails";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import InvoiceFlow from "./pages/InvoiceFlow";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,6 +55,7 @@ function App() {
                 <Route path="invoices/:id" element={<InvoiceDetails />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="invoice-flow" element={<InvoiceFlow />} />
               </Route>
 
               {/* Catch all route */}

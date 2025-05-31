@@ -10,6 +10,7 @@ import {
   ArrowRightOnRectangleIcon,
   ChevronDownIcon,
   DocumentTextIcon,
+  BeakerIcon,
 } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -19,6 +20,7 @@ const navigation = [
   { name: "Businesses", href: "/businesses", icon: BuildingOfficeIcon },
   { name: "Invoices", href: "/invoices", icon: DocumentTextIcon },
   { name: "Analytics", href: "/analytics", icon: ChartBarIcon },
+  { name: "API Tester", href: "/invoice-flow", icon: BeakerIcon },
   { name: "Settings", href: "/settings", icon: CogIcon },
 ];
 
