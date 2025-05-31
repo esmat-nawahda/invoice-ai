@@ -4,6 +4,7 @@ import { Business } from "../models/business.model";
 import { ApiKey } from "../models/apiKey.model";
 import { Invoice } from "../models/invoice.model";
 import { CurrencyService } from "../services/currency.service";
+import { getSystemSettings, updateSystemSettings, ISystemSettings } from "../models/systemSettings.model";
 import logger from "../config/logger";
 
 export class AdminController extends BaseController<any> {
@@ -1165,4 +1166,30 @@ export class AdminController extends BaseController<any> {
       };
     }
   }
+
+  // Get system settings
+  public getSystemSettings = async (_req: Request, res: Response) => {
+    try {
+      const settings = await getSystemSettings();
+      this.sendResponse(res, settings);
+    } catch (error) {
+      logger.error("Error fetching system settings:", error);
+      this.sendError(res, "Failed to fetch system settings", 500);
+    }
+  };
+
+  // Update system settings
+  public updateSystemSettings = async (req: Request, res: Response) => {
+    try {
+      const updates = req.body as Partial<ISystemSettings>;
+      const settings = await updateSystemSettings(updates);
+      
+      logger.info(`Admin updated system settings`);
+      
+      this.sendResponse(res, settings);
+    } catch (error) {
+      logger.error("Error updating system settings:", error);
+      this.sendError(res, "Failed to update system settings", 500);
+    }
+  };
 }

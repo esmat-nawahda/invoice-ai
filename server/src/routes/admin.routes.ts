@@ -241,4 +241,19 @@ router.get(
   adminController.getBusinessInvoices
 );
 
+// GET /admin/settings - Get system settings
+router.get("/settings", adminController.getSystemSettings);
+
+// PUT /admin/settings - Update system settings
+router.put(
+  "/settings",
+  body("platform").optional().isObject(),
+  body("billing").optional().isObject(),
+  body("security").optional().isObject(),
+  body("features").optional().isObject(),
+  body("notifications").optional().isObject(),
+  validateRequest,
+  adminController.updateSystemSettings
+);
+
 export default router;
