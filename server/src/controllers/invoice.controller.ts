@@ -469,6 +469,108 @@ export class InvoiceController {
     }
   );
 
+  // Register a new invoice from JSON data
+  registerInvoice = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+      const { type, invoiceData, originalImage } = req.body;
+      const business = req.business;
+
+      try {
+        // Prepare the invoice object
+        const invoiceToSave: any = {
+          business: business._id,
+          type,
+          invoiceNumber: invoiceData.invoiceNumber,
+          invoiceDate: this.parseDate(invoiceData.invoiceDate) || new Date(),
+          dueDate: this.parseDate(invoiceData.dueDate),
+          vendor: {
+            name: invoiceData.vendor?.name,
+            address: invoiceData.vendor?.address,
+            taxId: invoiceData.vendor?.taxId,
+            email: invoiceData.vendor?.email,
+            phone: invoiceData.vendor?.phone,
+          },
+          customer: {
+            name: invoiceData.customer?.name,
+            address: invoiceData.customer?.address,
+            taxId: invoiceData.customer?.taxId,
+            email: invoiceData.customer?.email,
+            phone: invoiceData.customer?.phone,
+          },
+          lineItems: invoiceData.lineItems?.map((item: any) => ({
+            description: item.description || "Item",
+            quantity: item.quantity || 1,
+            unitPrice: item.unitPrice || 0,
+            amount: item.amount || item.quantity * item.unitPrice || 0,
+          })) || [],
+          subtotal: invoiceData.subtotal || 0,
+          taxAmount: invoiceData.taxAmount || 0,
+          taxRate: invoiceData.taxRate,
+          discountAmount: invoiceData.discountAmount || 0,
+          totalAmount: invoiceData.totalAmount || 0,
+          currency: invoiceData.currency || business.currency,
+          paymentTerms: invoiceData.paymentTerms,
+          paymentStatus: invoiceData.paymentStatus || "unpaid",
+          notes: invoiceData.notes,
+          metadata: {
+            extractionConfidence: invoiceData.confidence || 1.0,
+            extractedAt: invoiceData.extractedAt || new Date(),
+            source: "api_registration",
+            registeredAt: new Date(),
+          },
+        };
+
+        // Add original image if provided
+        if (originalImage?.base64) {
+          const base64Data = originalImage.base64.includes('base64,') 
+            ? originalImage.base64.split('base64,')[1] 
+            : originalImage.base64;
+          
+          invoiceToSave.originalImage = {
+            base64: originalImage.base64,
+            mimeType: originalImage.mimeType || this.detectMimeType(originalImage.base64),
+            size: Buffer.from(base64Data, "base64").length,
+          };
+        }
+
+        // Create the invoice
+        const savedInvoice = await Invoice.create(invoiceToSave);
+
+        // Increment business usage
+        const storageSizeMB = invoiceToSave.originalImage?.size 
+          ? invoiceToSave.originalImage.size / (1024 * 1024) 
+          : 0;
+        await business.incrementUsage("invoice", 1, storageSizeMB);
+
+        logger.info(
+          `Invoice ${savedInvoice.invoiceNumber} registered for business ${business.name} via API`
+        );
+
+        res.status(201).json({
+          status: "success",
+          data: {
+            id: savedInvoice._id,
+            invoiceNumber: savedInvoice.invoiceNumber,
+            invoiceDate: savedInvoice.invoiceDate,
+            vendor: savedInvoice.vendor,
+            customer: savedInvoice.customer,
+            totalAmount: savedInvoice.totalAmount,
+            currency: savedInvoice.currency,
+            paymentStatus: savedInvoice.paymentStatus,
+            createdAt: savedInvoice.createdAt,
+          },
+        });
+      } catch (error) {
+        logger.error("Failed to register invoice:", error);
+        res.status(500).json({
+          status: "error",
+          message: "Failed to register invoice",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+  );
+
   private detectMimeType(base64: string): string {
     if (base64.startsWith("data:")) {
       const matches = base64.match(/^data:([^;]+);/);

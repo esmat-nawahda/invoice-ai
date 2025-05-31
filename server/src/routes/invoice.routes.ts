@@ -77,6 +77,176 @@ router.post(
 
 /**
  * @swagger
+ * /api/v1/invoices/register:
+ *   post:
+ *     summary: Register an invoice from JSON data
+ *     description: Create a new invoice from structured JSON data (typically after extraction and review)
+ *     tags: [Invoices]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - type
+ *               - invoiceData
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [received, sent]
+ *                 description: Whether this is a received invoice (from vendor) or sent invoice (to customer)
+ *               invoiceData:
+ *                 type: object
+ *                 required:
+ *                   - invoiceNumber
+ *                   - invoiceDate
+ *                   - vendor
+ *                   - customer
+ *                   - totalAmount
+ *                 properties:
+ *                   invoiceNumber:
+ *                     type: string
+ *                     description: Invoice number
+ *                   invoiceDate:
+ *                     type: string
+ *                     format: date
+ *                     description: Invoice date
+ *                   dueDate:
+ *                     type: string
+ *                     format: date
+ *                     description: Payment due date
+ *                   vendor:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                       address:
+ *                         type: string
+ *                       taxId:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       phone:
+ *                         type: string
+ *                   customer:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                       address:
+ *                         type: string
+ *                       taxId:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       phone:
+ *                         type: string
+ *                   lineItems:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         description:
+ *                           type: string
+ *                         quantity:
+ *                           type: number
+ *                         unitPrice:
+ *                           type: number
+ *                         amount:
+ *                           type: number
+ *                   subtotal:
+ *                     type: number
+ *                   taxAmount:
+ *                     type: number
+ *                   taxRate:
+ *                     type: number
+ *                   discountAmount:
+ *                     type: number
+ *                   totalAmount:
+ *                     type: number
+ *                   currency:
+ *                     type: string
+ *                     default: Business default currency
+ *                   paymentTerms:
+ *                     type: string
+ *                   paymentStatus:
+ *                     type: string
+ *                     enum: [paid, unpaid, partial]
+ *                     default: unpaid
+ *                   notes:
+ *                     type: string
+ *               originalImage:
+ *                 type: object
+ *                 description: Optional original invoice image
+ *                 properties:
+ *                   base64:
+ *                     type: string
+ *                     description: Base64 encoded image
+ *                   mimeType:
+ *                     type: string
+ *                     description: Image MIME type
+ *     responses:
+ *       201:
+ *         description: Successfully created invoice
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: Invalid or missing API key
+ *       403:
+ *         description: Forbidden - API key lacks permission or rate limit exceeded
+ *       500:
+ *         description: Server error
+ */
+router.post(
+  "/register",
+  requirePermission("invoiceCreate"),
+  checkInvoiceLimit,
+  [
+    body("type")
+      .isIn(["received", "sent"])
+      .withMessage("Type must be either 'received' or 'sent'"),
+    body("invoiceData").isObject().withMessage("Invoice data must be an object"),
+    body("invoiceData.invoiceNumber")
+      .isString()
+      .notEmpty()
+      .withMessage("Invoice number is required"),
+    body("invoiceData.invoiceDate")
+      .isISO8601()
+      .withMessage("Valid invoice date is required"),
+    body("invoiceData.vendor.name")
+      .isString()
+      .notEmpty()
+      .withMessage("Vendor name is required"),
+    body("invoiceData.customer.name")
+      .isString()
+      .notEmpty()
+      .withMessage("Customer name is required"),
+    body("invoiceData.totalAmount")
+      .isNumeric()
+      .withMessage("Total amount must be a number"),
+    body("invoiceData.lineItems")
+      .optional()
+      .isArray()
+      .withMessage("Line items must be an array"),
+    body("invoiceData.currency")
+      .optional()
+      .isString()
+      .isLength({ min: 3, max: 3 })
+      .withMessage("Currency must be a 3-letter code"),
+    body("originalImage.base64")
+      .optional()
+      .isString()
+      .withMessage("Image must be base64 encoded"),
+  ],
+  validate,
+  invoiceController.registerInvoice
+);
+
+/**
+ * @swagger
  * /api/v1/invoices:
  *   get:
  *     summary: Get all invoices
